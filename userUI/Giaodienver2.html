@@ -1,0 +1,2473 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý Sổ Tiết Kiệm</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* General styling for the page */
+        :root {
+            --primary-color: #667eea;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --border-color: #e2e8f0;
+            --danger-color: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            --success-color: #22c55e;
+            --success-bg: rgba(34, 197, 94, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: var(--bg-secondary);
+            color: #334155;
+            line-height: 1.6;
+        }
+        
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Sidebar styling */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            padding: 0;
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 1001; /* Higher than overlay */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: width 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--primary-gradient);
+            color: white;
+            min-height: 115px; /* Fixed height for header */
+            transition: padding 0.3s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-full h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .logo-full p {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+        
+        .logo-collapsed {
+             display: none; /* Hidden by default */
+             font-size: 2rem;
+             text-align: center;
+             color: white;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 1.5rem 0;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0 1.5rem;
+            margin-bottom: 0.75rem; /* Adjusted spacing */
+            white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+
+        .nav-item {
+            margin-bottom: 0.125rem;
+            padding: 0 1rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            position: relative;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .nav-link:hover {
+            background: #f1f5f9;
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 1px 3px rgba(102, 126, 234, 0.3);
+        }
+
+        .nav-link i {
+            margin-right: 0.75rem;
+            font-size: 1.1rem; /* Slightly larger icons */
+            width: 20px;
+            text-align: center;
+            transition: margin 0.3s ease-in-out;
+        }
+
+        .nav-link .nav-text {
+            transition: opacity 0.2s ease-in-out;
+        }
+        
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .sidebar-toggle {
+            width: 100%;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+            overflow: hidden;
+        }
+        
+        .sidebar-toggle:hover {
+            background: #f1f5f9;
+        }
+        
+        .sidebar-toggle i {
+            flex-shrink: 0;
+            margin-right: 0.75rem;
+            transition: transform 0.3s ease, margin 0.3s ease;
+        }
+        
+        /* Mobile Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0s 0.3s linear;
+        }
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+
+        /* Desktop Collapsed Sidebar Styles */
+        body.sidebar-collapsed .sidebar {
+            width: 80px;
+        }
+        
+        body.sidebar-collapsed .sidebar-header {
+            padding: 2rem 1rem;
+        }
+
+        body.sidebar-collapsed .logo-full { display: none; }
+        body.sidebar-collapsed .logo-collapsed { display: block; }
+        
+        body.sidebar-collapsed .nav-text,
+        body.sidebar-collapsed .nav-section-title {
+            opacity: 0;
+            width: 0;
+        }
+        body.sidebar-collapsed .nav-link i {
+            margin-right: 0;
+        }
+        
+        body.sidebar-collapsed .sidebar-toggle-text {
+            display: none;
+        }
+        body.sidebar-collapsed .sidebar-toggle i {
+            margin: 0 auto;
+            transform: rotate(180deg);
+        }
+        
+        /* Main content area styling */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            background: var(--bg-secondary);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        
+        body.sidebar-collapsed .main-content {
+            margin-left: 80px;
+        }
+
+        /* Header styling */
+        .header {
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 2rem;
+            min-height: 115px;
+            position: sticky;
+            top: 0;
+            z-index: 998; /* Below sidebar */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .header-title-section h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-box { position: relative; }
+        .search-box input {
+            width: 300px; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--border-color); border-radius: 0.5rem; font-size: 0.875rem; background: var(--bg-secondary); transition: all 0.2s ease;
+        }
+        .search-box input:focus {
+            outline: none; border-color: var(--primary-color); background: white; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .search-box i {
+            position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary);
+        }
+
+        .notification-btn {
+            position: relative; padding: 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;
+        }
+        .notification-badge {
+            position: absolute; top: -0.25rem; right: -0.25rem; background: #ef4444; color: white; font-size: 0.75rem; width: 1.25rem; height: 1.25rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600;
+        }
+
+        .user-menu-container { position: relative; }
+        .user-menu {
+            display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 0.5rem; cursor: pointer; transition: all 0.2s ease;
+        }
+        .user-avatar {
+            width: 32px; height: 32px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.875rem;
+        }
+        .user-name { font-weight: 600; font-size: 0.875rem; color: var(--text-primary); }
+        .user-role { font-size: 0.75rem; color: var(--text-secondary); }
+        .dropdown-menu {
+            position: absolute; top: calc(100% + 10px); right: 0; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 200px; overflow: hidden; z-index: 1002; opacity: 0; visibility: hidden; transform: translateY(10px); transition: all 0.2s ease;
+        }
+        .dropdown-menu.show { opacity: 1; visibility: visible; transform: translateY(0); }
+        .dropdown-item { display: block; padding: 0.75rem 1rem; color: var(--text-secondary); text-decoration: none; font-size: 0.875rem; }
+        .dropdown-item i { margin-right: 0.5rem; }
+        .dropdown-item:hover { background: #f1f5f9; color: var(--text-primary); }
+        .dropdown-divider { height: 1px; background: var(--border-color); margin: 0.5rem 0; }
+        
+        /* Main content and page styling */
+        .content-area { padding: 2rem; }
+        .page { display: none; } /* Hide all pages by default */
+        .page.active { display: block; } /* Show only the active page */
+
+        /* Generic card and table styling */
+        .card { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;}
+        .card-title { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
+        .card-actions { display: flex; gap: 0.75rem; align-items: center;}
+        .btn { padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid transparent; transition: all 0.2s ease;}
+        .btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        .btn-secondary { background: var(--bg-secondary); color: var(--text-secondary); border-color: var(--border-color); }
+        .btn-secondary:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .btn-primary { background: var(--primary-color); color: white; border-color: var(--primary-color);}
+        .btn-primary:hover { background: #5a67d8; }
+        .btn-danger { background: var(--danger-color); color: white; border-color: var(--danger-color); }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: var(--success-color); color: white; border-color: var(--success-color); }
+        .btn-success:hover { background: #16a34a; }
+        .table-container { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .data-table th, .data-table td { padding: 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--border-color); vertical-align: middle; white-space: nowrap;}
+        .data-table th { font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+        .data-table .action-links a, .data-table .action-links button {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin: 0 0.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .data-table .action-links a:hover, .data-table .action-links button:hover {
+            color: var(--primary-color);
+        }
+        .data-table .action-links .delete:hover {
+            color: var(--danger-color);
+        }
+
+        .status-badge { padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem; }
+        .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+        .status-active { background-color: var(--success-bg); color: #16a34a; }
+        .status-active::before { background-color: var(--success-color); }
+        .status-matured { background-color: rgba(59, 130, 246, 0.1); color: #2563eb; }
+        .status-matured::before { background-color: #3b82f6; }
+        .status-ended { background-color: rgba(100, 116, 139, 0.1); color: #475569; }
+        .status-ended::before { background-color: #64748b; }
+        
+        /* Stats grid from dashboard */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .stat-card { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; transition: all 0.2s ease; position: relative; overflow: hidden; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07); border-color: var(--primary-color); }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--primary-gradient); }
+        .stat-icon { width: 48px; height: 48px; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .stat-card:nth-child(1) .stat-icon { background: var(--success-bg); color: var(--success-color); }
+        .stat-card:nth-child(2) .stat-icon { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .stat-card:nth-child(3) .stat-icon { background: rgba(249, 115, 22, 0.1); color: #f97316; }
+        .stat-card:nth-child(4) .stat-icon { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem; display: flex; align-items: baseline; gap: 0.5rem; }
+        .stat-label { color: var(--text-secondary); font-size: 0.875rem; font-weight: 500; margin-bottom: 0.75rem; }
+        .stat-change { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; font-weight: 600; }
+        .stat-change.positive { color: var(--success-color); }
+        .stat-change.negative { color: var(--danger-color); }
+        
+        /* Dashboard and Reports grid */
+        .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+        .reports-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+
+        .report-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            transition: all 0.2s ease;
+        }
+        .report-card:hover {
+             transform: translateY(-2px);
+             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07);
+             border-color: var(--primary-color);
+             cursor: pointer;
+        }
+        .report-card .report-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 0.5rem;
+        }
+        .report-card .report-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+         .report-card .report-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Recent Activity */
+        .view-all-btn {
+            color: var(--primary-color);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+        }
+        .activity-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .activity-item { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9; }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-icon {
+            width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; flex-shrink: 0;
+        }
+        .activity-icon.deposit { background: var(--success-bg); color: var(--success-color); }
+        .activity-icon.withdraw { background: var(--danger-bg); color: var(--danger-color); }
+        .activity-icon.new { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .activity-icon.update { background: rgba(249, 115, 22, 0.1); color: #f97316; }
+        .activity-content { flex: 1; min-width: 0; }
+        .activity-description { color: var(--text-primary); font-size: 0.875rem; font-weight: 500; margin-bottom: 0.125rem; }
+        .activity-time { color: var(--text-secondary); font-size: 0.75rem; }
+        .activity-amount { font-weight: 600; font-size: 0.875rem; margin-left: auto; white-space: nowrap; }
+        .activity-amount.positive { color: var(--success-color); }
+        .activity-amount.negative { color: var(--danger-color); }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 1.5rem;
+        }
+        .pagination-link {
+            padding: 0.5rem 1rem;
+            margin: 0 0.25rem;
+            text-decoration: none;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        .pagination-link:hover {
+            background: #f1f5f9;
+            color: var(--text-primary);
+        }
+        .pagination-link.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .pagination-link.disabled {
+            color: #cbd5e1;
+            pointer-events: none;
+        }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1010;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0s 0.3s;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease;
+        }
+        .modal-container {
+            background: var(--bg-primary);
+            padding: 0;
+            border-radius: 0.75rem;
+            width: 100%;
+            max-width: 900px; 
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+        .modal-overlay.active .modal-container {
+            transform: scale(1);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            flex-shrink: 0;
+        }
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .modal-body {
+             padding: 2rem;
+             overflow-y: auto;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .form-section-title {
+            grid-column: 1 / -1;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .form-section-title:first-child {
+            margin-top: 0;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            background-color: white;
+            font-family: inherit;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .form-group input:disabled, .form-group select:disabled, .form-group textarea:disabled {
+            background-color: #f1f5f9;
+            cursor: not-allowed;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--bg-secondary);
+            border-bottom-left-radius: 0.75rem;
+            border-bottom-right-radius: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .modal-footer.stepper-footer {
+            justify-content: space-between;
+        }
+        
+        /* Stepper Styles */
+        .modal-stepper { display: flex; align-items: center; gap: 0.5rem; }
+        .step { width: 2rem; height: 2rem; border-radius: 50%; background-color: var(--border-color); color: var(--text-secondary); display: flex; justify-content: center; align-items: center; font-weight: 600; transition: all 0.3s ease; }
+        .step.active { background-color: var(--primary-color); color: white; }
+        .step.completed { background-color: #34d399; color: white; }
+        .step-line { height: 2px; width: 2rem; background-color: var(--border-color); }
+        .modal-step { display: none; }
+        .modal-step.active { display: block; }
+
+        /* Search & Tag Styles */
+        .customer-search-group { display: flex; align-items: flex-end; gap: 1rem; }
+        .customer-search-group .form-group { flex-grow: 1; }
+        .searchable-dropdown { position: relative; }
+        .search-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 0.5rem 0.5rem; z-index: 10; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; }
+        .search-result-item { padding: 0.75rem 1rem; cursor: pointer; }
+        .search-result-item:hover { background-color: #f1f5f9; }
+        .selected-customers-list { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.5rem; min-height: 48px; margin-top: 1rem; }
+        .customer-tag { display: inline-flex; align-items: center; gap: 0.5rem; background-color: #eef2ff; color: var(--primary-color); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 500; }
+        .customer-tag .remove-tag-btn { background: none; border: none; cursor: pointer; color: var(--primary-color); opacity: 0.7; }
+        .customer-tag .remove-tag-btn:hover { opacity: 1; }
+        
+        /* Confirmation Modal Specifics */
+        #delete-confirm-modal .modal-container { max-width: 500px; }
+        #delete-confirm-modal .modal-body { display: flex; align-items: center; gap: 1.5rem; }
+        #delete-confirm-modal .modal-icon { font-size: 3rem; color: var(--danger-color); flex-shrink: 0; }
+        #delete-confirm-modal #confirm-message { font-size: 1rem; color: var(--text-primary); }
+        
+        /* Toast Notification Styles */
+        .toast-container { position: fixed; top: 2rem; right: 2rem; z-index: 9999; display: flex; flex-direction: column; gap: 1rem; }
+        .toast { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); color: white; opacity: 0; transform: translateX(100%); animation: toast-in 0.5s forwards, toast-out 0.5s 4.5s forwards; min-width: 350px; }
+        @keyframes toast-in { to { opacity: 1; transform: translateX(0); } }
+        @keyframes toast-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+        .toast-icon { font-size: 1.25rem; }
+        .toast-success { background-color: var(--success-color); }
+        .toast-error { background-color: var(--danger-color); }
+
+        /* Detail View & Report Styles */
+        .detail-grid, .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem 2rem; }
+        .detail-item, .summary-grid .details-row { font-size: 0.9rem; }
+        .detail-item .detail-label, .summary-grid .details-row span:first-child { display: block; color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.25rem; }
+        .detail-item .detail-value, .summary-grid .details-row span:last-child { font-weight: 500; color: var(--text-primary); }
+        .summary-grid .details-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dotted var(--border-color); }
+        .summary-customer-list { list-style: none; padding: 0; margin: 0; text-align: right; }
+
+        .report-filters { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem; background-color: var(--bg-secondary); border-radius: 0.5rem; margin-bottom: 1.5rem; align-items: flex-end; }
+        .report-filters .form-group { margin-bottom: 0; }
+        .report-filters .btn { align-self: flex-end; }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) { .dashboard-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 1024px) {
+            body.sidebar-collapsed .main-content { margin-left: 0; }
+            .sidebar { transform: translateX(-100%); }
+            body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .mobile-menu-toggle { display: block; }
+            .sidebar-toggle { display: none; }
+            .header { min-height: auto; padding: 1rem; }
+        }
+        @media (max-width: 768px) {
+            .header-right { gap: 0.5rem; }
+            .search-box input { width: 150px; }
+            .user-info { display: none; }
+            .detail-grid, .form-grid, .summary-grid { grid-template-columns: 1fr; }
+            .report-filters { flex-direction: column; align-items: stretch; }
+        }
+
+        /* ----- CSS PHÂN QUYỀN CHO NHÂN VIÊN ----- */
+        body.user-role-staff .action-links .delete,
+        body.user-role-staff .edit-type-btn,
+        body.user-role-staff .add-type-btn,
+        body.user-role-staff .edit-rate-btn,
+        body.user-role-staff .add-rate-btn,
+        body.user-role-staff .nav-link[data-target="ai-analysis"] { /* Ẩn mục AI cho staff */
+            display: none !important;
+        }
+
+        /* Ẩn mục Nâng cao nếu không có mục con nào hiển thị */
+         body.user-role-staff .nav-link[data-target="ai-analysis"] ~ .nav-section:has(+.nav-item:has(.nav-link[data-target="ai-analysis"])) {
+            display:none;
+        }
+
+        body.user-role-staff #types-page .data-table th:last-child,
+        body.user-role-staff #types-page .data-table td.action-links,
+        body.user-role-staff #rates-page .data-table th:last-child,
+        body.user-role-staff #rates-page .data-table td.action-links {
+            display: none;
+        }
+
+        /* === CSS BỔ SUNG CHO TRANG AI === */
+        .initial-message {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 2rem;
+            border: 2px dashed var(--border-color);
+            border-radius: 0.5rem;
+        }
+        
+        .reason-tag {
+            display: inline-block;
+            padding: 0.25rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background-color: var(--danger-bg);
+            color: #c0392b; /* A slightly darker red for readability */
+        }
+        /* AI Page Tabs */
+        .ai-tabs {
+            display: flex;
+            gap: 0.25rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+        .ai-tab-link {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 0.5rem 0.5rem 0 0;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            position: relative;
+            bottom: -1px;
+        }
+        .ai-tab-link:hover {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        .ai-tab-link.active {
+            background-color: var(--bg-primary);
+            border-color: var(--border-color);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .ai-tab-content {
+            display: none;
+        }
+        .ai-tab-content.active {
+            display: block;
+        }
+
+        /* Segmentation Info Section */
+        .segmentation-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            padding-top: 1rem;
+        }
+        .segmentation-info-grid h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+        .segmentation-info-grid p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        .segmentation-info-grid ul {
+            list-style-type: none;
+            padding-left: 0;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        .segmentation-info-grid ul li {
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Segmentation Results */
+        .segmentation-results-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            align-items: flex-start;
+            padding: 1.5rem;
+        }
+        #segmentation-chart-container {
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+        @media (max-width: 992px) {
+            .segmentation-results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Segmentation Badges */
+        .segment-badge {
+            padding: 0.25rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            display: inline-block;
+        }
+        .segment-badge.segment-vip {
+            background-color: #a855f7; /* purple */
+        }
+        .segment-badge.segment-average {
+            background-color: #3b82f6; /* blue */
+        }
+        .segment-badge.segment-inactive {
+            background-color: #64748b; /* slate */
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                 <div class="logo-full">
+                    <h1><i class="fas fa-university"></i> SaveBank Pro</h1>
+                    <p>Quản lý sổ tiết kiệm</p>
+                 </div>
+                 <div class="logo-collapsed">
+                    <i class="fas fa-university"></i>
+                 </div>
+            </div>
+            
+            <ul id="nav-menu" class="nav-menu">
+                <li class="nav-section"><div class="nav-section-title">Tổng quan</div></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" data-target="dashboard">
+                        <i class="fas fa-tachometer-alt"></i><span class="nav-text">Dashboard</span>
+                    </a>
+                </li>
+                
+                <li class="nav-section"><div class="nav-section-title">Quản lý</div></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-target="customers">
+                        <i class="fas fa-users"></i><span class="nav-text">Khách hàng</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-target="savings-books">
+                        <i class="fas fa-book"></i><span class="nav-text">Sổ tiết kiệm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-target="transactions">
+                        <i class="fas fa-exchange-alt"></i><span class="nav-text">Giao dịch</span>
+                    </a>
+                </li>
+                
+                <li class="nav-section"><div class="nav-section-title">Cấu hình</div></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-target="types">
+                        <i class="fas fa-tags"></i><span class="nav-text">Loại sổ tiết kiệm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-target="rates">
+                        <i class="fas fa-percentage"></i><span class="nav-text">Lãi Suất</span>
+                    </a>
+                </li>
+                 <li class="nav-section"><div class="nav-section-title">Báo cáo</div></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-target="reports">
+                        <i class="fas fa-chart-pie"></i><span class="nav-text">Báo cáo & Thống kê</span>
+                    </a>
+                </li>
+
+                <li class="nav-section"><div class="nav-section-title">Nâng cao</div></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-target="ai-analysis">
+                        <i class="fas fa-brain"></i><span class="nav-text">Phân tích AI</span>
+                    </a>
+                </li>
+                </ul>
+
+            <div class="sidebar-footer">
+                <button class="sidebar-toggle" id="sidebar-toggle">
+                    <i class="fas fa-chevron-left"></i>
+                    <span class="sidebar-toggle-text">Thu gọn</span>
+                </button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                     <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="header-title-section">
+                        <h1 id="page-title">Dashboard</h1>
+                        <div class="breadcrumb" id="breadcrumb">
+                           <div class="breadcrumb-item"><a href="#">Trang chủ</a> <i class="fas fa-chevron-right"></i></div>
+                           <div class="breadcrumb-item" id="breadcrumb-current">Dashboard</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <div class="search-box position-relative">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Tìm kiếm...">
+                    </div>
+                    <button class="notification-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <div class="user-menu-container">
+                        <div class="user-menu" id="user-menu-button">
+                            <div class="user-avatar" id="user-avatar-initials"></div>
+                            <div class="user-info d-none d-md-block">
+                                <div class="user-name" id="user-name-display"></div>
+                                <div class="user-role" id="user-role-display"></div>
+                            </div>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                         <div class="dropdown-menu" id="user-dropdown">
+                            <a href="#" class="dropdown-item"><i class="fas fa-user-circle"></i> Hồ sơ</a>
+                            <a href="#" class="dropdown-item"><i class="fas fa-cog"></i> Cài đặt</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" class="dropdown-item" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <div id="dashboard-page" class="page active">
+                    <section class="stats-grid mb-4">
+                        <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-value">1,248</div><div class="stat-label">Tổng khách hàng</div><div class="stat-change positive"><i class="fas fa-arrow-up"></i><span>+12%</span></div></div>
+                        <div class="stat-card"><div class="stat-icon"><i class="fas fa-book"></i></div><div class="stat-value">2,156</div><div class="stat-label">Sổ đang hoạt động</div><div class="stat-change positive"><i class="fas fa-arrow-up"></i><span>+8%</span></div></div>
+                        <div class="stat-card"><div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div><div class="stat-value">58.2<span style="font-size: 1rem;font-weight: 500;">tỷ</span></div><div class="stat-label">Tổng số dư</div><div class="stat-change positive"><i class="fas fa-arrow-up"></i><span>+15%</span></div></div>
+                        <div class="stat-card"><div class="stat-icon"><i class="fas fa-chart-line"></i></div><div class="stat-value">8.5<span style="font-size: 1rem;font-weight: 500;">%</span></div><div class="stat-label">Lãi suất TB</div><div class="stat-change negative"><i class="fas fa-arrow-down"></i><span>-0.2%</span></div></div>
+                    </section>
+                    <section class="dashboard-grid">
+                        <div class="card"><div class="card-header"><div class="card-title">Biểu đồ dòng tiền</div></div><div><canvas id="transactionsChart"></canvas></div></div>
+                        <div class="card">
+                            <div class="card-header"><h2 class="card-title">Hoạt động gần đây</h2><a href="#" class="view-all-btn">Xem tất cả</a></div>
+                            <div class="activity-list">
+                                <div class="activity-item"><div class="activity-icon new"><i class="fas fa-plus"></i></div><div class="activity-content"><div class="activity-description">Mở sổ tiết kiệm mới</div><div class="activity-time">Nguyễn Văn An - 5 phút trước</div></div><div class="activity-amount positive">+50M</div></div>
+                                <div class="activity-item"><div class="activity-icon deposit"><i class="fas fa-arrow-up"></i></div><div class="activity-content"><div class="activity-description">Gửi tiền tiết kiệm</div><div class="activity-time">Trần Thị Bích - 15 phút trước</div></div><div class="activity-amount positive">+20M</div></div>
+                                <div class="activity-item"><div class="activity-icon withdraw"><i class="fas fa-arrow-down"></i></div><div class="activity-content"><div class="activity-description">Rút tiền tiết kiệm</div><div class="activity-time">Lê Văn C - 1 giờ trước</div></div><div class="activity-amount negative">-15M</div></div>
+                                <div class="activity-item"><div class="activity-icon update"><i class="fas fa-percentage"></i></div><div class="activity-content"><div class="activity-description">Cập nhật lãi suất</div><div class="activity-time">Hệ thống - 2 giờ trước</div></div></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="customers-page" class="page">
+                    <div class="card">
+                        <div class="card-header"><h2 class="card-title">Danh sách Khách hàng</h2><div class="card-actions"><button id="add-customer-btn" class="btn btn-primary"><i class="fas fa-plus"></i> Thêm Khách hàng</button></div></div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead><tr><th>Mã KH</th><th>Họ và Tên</th><th>Ngày Sinh</th><th>Số GT</th><th>Địa Chỉ</th><th>SĐT</th><th>Hành Động</th></tr></thead>
+                                <tbody>
+                                    <tr><td>KH001</td><td>Nguyễn Văn An</td><td>1985-08-15</td><td>012345678</td><td>123 Đường Láng, Đống Đa, Hà Nội</td><td>0905123456</td><td class="action-links"><button title="Xem" class="view-customer-btn"><i class="fas fa-eye"></i></button><button title="Sửa" class="edit-customer-btn"><i class="fas fa-edit"></i></button><button title="Xóa" class="delete delete-customer-btn"><i class="fas fa-trash"></i></button></td></tr>
+                                    <tr><td>KH002</td><td>Trần Thị Bích</td><td>1990-11-20</td><td>876543210</td><td>456 Lê Lợi, Quận 1, TP.HCM</td><td>0913789123</td><td class="action-links"><button title="Xem" class="view-customer-btn"><i class="fas fa-eye"></i></button><button title="Sửa" class="edit-customer-btn"><i class="fas fa-edit"></i></button><button title="Xóa" class="delete delete-customer-btn"><i class="fas fa-trash"></i></button></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination"><a href="#" class="pagination-link disabled">Trước</a><a href="#" class="pagination-link active">1</a><a href="#" class="pagination-link">2</a><a href="#" class="pagination-link">Sau</a></div>
+                    </div>
+                </div>
+                
+                <div id="savings-books-page" class="page">
+                    <div class="card">
+                        <div class="card-header"><h2 class="card-title">Danh sách Sổ tiết kiệm</h2><div class="card-actions"><button class="btn btn-primary open-book-btn"><i class="fas fa-plus"></i> Mở Sổ mới</button></div></div>
+                        <div class="table-container">
+                             <table class="data-table">
+                                <thead><tr><th>Mã Sổ</th><th>Khách Hàng</th><th>Ngày Mở Sổ</th><th>Ngày Đến Hạn</th><th>Số Tiền Gốc</th><th>Trạng Thái</th><th>Hành Động</th></tr></thead>
+                                <tbody>
+                                    <tr><td>STK00123</td><td>Nguyễn Văn An</td><td>01/06/2024</td><td>01/06/2025</td><td>100,000,000 VNĐ</td><td><span class="status-badge status-active">Đang hoạt động</span></td><td class="action-links"><button title="Xem" class="view-book-btn"><i class="fas fa-eye"></i></button><button title="Sửa" class="edit-book-btn"><i class="fas fa-edit"></i></button><button title="Xóa" class="delete delete-book-btn"><i class="fas fa-trash"></i></button></td></tr>
+                                    <tr><td>STK00124</td><td>Trần Thị Bích</td><td>15/05/2024</td><td>15/11/2024</td><td>50,000,000 VNĐ</td><td><span class="status-badge status-active">Đang hoạt động</span></td><td class="action-links"><button title="Xem" class="view-book-btn"><i class="fas fa-eye"></i></button><button title="Sửa" class="edit-book-btn"><i class="fas fa-edit"></i></button><button title="Xóa" class="delete delete-book-btn"><i class="fas fa-trash"></i></button></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                         <div class="pagination"><a href="#" class="pagination-link disabled">Trước</a><a href="#" class="pagination-link active">1</a><a href="#" class="pagination-link">Sau</a></div>
+                    </div>
+                </div>
+
+                <div id="transactions-page" class="page">
+                     <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Lịch sử Giao dịch</h2>
+                            <div class="card-actions"><button class="btn btn-primary add-transaction-btn"><i class="fas fa-plus"></i> Thêm Giao Dịch</button></div>
+                        </div>
+                        <div class="table-container"><table class="data-table"><thead><tr><th>Mã GD</th><th>Ngày Giao Dịch</th><th>Loại GD</th><th>Số Tiền</th><th>Trạng Thái GD</th><th>Hành Động</th></tr></thead><tbody><tr><td>GD240601-001</td><td>01/06/2024</td><td>Gửi tiền</td><td style="color: var(--success-color);">+100,000,000 VNĐ</td><td>Thành công</td><td class="action-links"><button title="Xem chi tiết" class="view-transaction-btn"><i class="fas fa-eye"></i></button><button title="Xóa" class="delete delete-transaction-btn"><i class="fas fa-trash"></i></button></td></tr><tr><td>GD240602-002</td><td>02/06/2024</td><td>Rút lãi</td><td style="color: var(--danger-color);">-1,500,000 VNĐ</td><td>Thành công</td><td class="action-links"><button title="Xem chi tiết" class="view-transaction-btn"><i class="fas fa-eye"></i></button><button title="Xóa" class="delete delete-transaction-btn"><i class="fas fa-trash"></i></button></td></tr></tbody></table></div>
+                         <div class="pagination"><a href="#" class="pagination-link disabled">Trước</a><a href="#" class="pagination-link active">1</a><a href="#" class="pagination-link">Sau</a></div>
+                    </div>
+                </div>
+
+                <div id="types-page" class="page">
+                    <div class="card">
+                        <div class="card-header"><h2 class="card-title">Các loại Sổ tiết kiệm</h2><div class="card-actions"><button class="btn btn-primary add-type-btn"><i class="fas fa-plus"></i> Thêm loại mới</button></div></div>
+                        <div class="table-container"><table class="data-table"><thead><tr><th>Mã Loại Sổ</th><th>Tên Loại Sổ</th><th>Đơn Vị Tiền</th><th>Hình Thức Gửi</th><th>Hình Thức Trả Lãi</th><th>Kỳ Trả Lãi</th><th>Hành Động</th></tr></thead><tbody><tr><td>TIETKIEM_12T</td><td>Tiết kiệm thường 12 tháng</td><td>VND</td><td>Tại quầy</td><td>Cuối kỳ</td><td>12 tháng</td><td class="action-links"><button title="Sửa" class="edit-type-btn"><i class="fas fa-edit"></i></button><button title="Xóa" class="delete delete-type-btn"><i class="fas fa-trash"></i></button></td></tr><tr><td>PHATLOC_24T</td><td>Tiết kiệm phát lộc</td><td>VND</td><td>Online</td><td>Hàng tháng</td><td>1 tháng</td><td class="action-links"><button title="Sửa" class="edit-type-btn"><i class="fas fa-edit"></i></button><button title="Xóa" class="delete delete-type-btn"><i class="fas fa-trash"></i></button></td></tr></tbody></table></div>
+                         <div class="pagination"><a href="#" class="pagination-link disabled">Trước</a><a href="#" class="pagination-link active">1</a><a href="#" class="pagination-link">Sau</a></div>
+                    </div>
+                </div>
+
+                <div id="rates-page" class="page">
+                    <div class="card">
+                        <div class="card-header"><h2 class="card-title">Bảng Lãi suất hiện hành</h2><div class="card-actions"><button class="btn btn-primary add-rate-btn"><i class="fas fa-plus"></i> Thêm Lãi suất</button></div></div>
+                         <div class="table-container">
+                             <table class="data-table">
+                                <thead><tr><th>Mã Lãi Suất</th><th>Kỳ Hạn</th><th>Mức Tiền</th><th>Lãi suất tháng đầu</th><th>Lãi suất các tháng sau</th><th>Ngày Áp Dụng</th><th>Hành Động</th></tr></thead>
+                                <tbody>
+                                    <tr><td>KKH_VND</td><td>Không kỳ hạn</td><td>Không giới hạn</td><td>0.5%</td><td>0.5%</td><td>01/01/2024</td><td class="action-links"><button title="Sửa" class="edit-rate-btn"><i class="fas fa-edit"></i></button><button title="Xóa" class="delete delete-rate-btn"><i class="fas fa-trash"></i></button></td></tr>
+                                    <tr><td>1M_VND_24</td><td>1 tháng</td><td>Trên 1,000,000</td><td>3.0%</td><td>3.0%</td><td>01/06/2024</td><td class="action-links"><button title="Sửa" class="edit-rate-btn"><i class="fas fa-edit"></i></button><button title="Xóa" class="delete delete-rate-btn"><i class="fas fa-trash"></i></button></td></tr>
+                                    <tr><td>12M_VND_24</td><td>12 tháng</td><td>Trên 1,000,000</td><td>5.5%</td><td>5.2%</td><td>01/06/2024</td><td class="action-links"><button title="Sửa" class="edit-rate-btn"><i class="fas fa-edit"></i></button><button title="Xóa" class="delete delete-rate-btn"><i class="fas fa-trash"></i></button></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                         <div class="pagination"><a href="#" class="pagination-link disabled">Trước</a><a href="#" class="pagination-link active">1</a><a href="#" class="pagination-link">Sau</a></div>
+                    </div>
+                </div>
+
+                <div id="reports-page" class="page">
+                    <div class="card">
+                        <div class="card-header"><h2 class="card-title">Trung tâm Báo cáo</h2></div>
+                        <div class="reports-grid">
+                            <div class="report-card" data-report="customer"><div class="report-icon"><i class="fas fa-users"></i></div><div class="report-info"><div class="report-title">Báo cáo Khách hàng</div><div class="report-description">Thống kê khách hàng mới, khách hàng tiềm năng.</div></div></div>
+                            <div class="report-card" data-report="transaction"><div class="report-icon"><i class="fas fa-exchange-alt"></i></div><div class="report-info"><div class="report-title">Báo cáo Giao dịch</div><div class="report-description">Thống kê dòng tiền, các giao dịch theo ngày, tháng, quý.</div></div></div>
+                            <div class="report-card" data-report="savings-book"><div class="report-icon"><i class="fas fa-book-open"></i></div><div class="report-info"><div class="report-title">Báo cáo Sổ tiết kiệm</div><div class="report-description">Thống kê sổ mở mới, sổ đáo hạn, tổng số dư.</div></div></div>
+                            <div class="report-card" data-report="debt"><div class="report-icon"><i class="fas fa-file-invoice-dollar"></i></div><div class="report-info"><div class="report-title">Báo cáo Công nợ</div><div class="report-description">Thống kê các khoản lãi phải trả, dự chi.</div></div></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="ai-analysis-page" class="page">
+                    <div class="ai-tabs">
+                        <button class="ai-tab-link active" data-tab="anomaly-detection-content">Phát hiện Giao dịch Bất thường</button>
+                        <button class="ai-tab-link" data-tab="customer-segmentation-content">Phân nhóm Khách hàng</button>
+                    </div>
+                
+                    <div id="anomaly-detection-content" class="ai-tab-content active">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Phát hiện Giao dịch Bất thường</h2>
+                                <div class="card-actions">
+                                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-bottom: 0;">
+                                        <label for="ai-startDate">Từ</label>
+                                        <input type="date" id="ai-startDate" style="padding: 0.5rem;">
+                                    </div>
+                                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-bottom: 0;">
+                                        <label for="ai-endDate">Đến</label>
+                                        <input type="date" id="ai-endDate" style="padding: 0.5rem;">
+                                    </div>
+                                    <button id="run-ai-analysis-btn" class="btn btn-primary">
+                                        <i class="fas fa-play-circle"></i> Chạy Phân tích
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="ai-results-container">
+                                <div class="initial-message">
+                                    <p>Nhấn "Chạy Phân tích" để bắt đầu tìm kiếm các giao dịch bất thường trong khoảng thời gian đã chọn.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div id="customer-segmentation-content" class="ai-tab-content">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Phân Nhóm Khách Hàng bằng KMeans Clustering</h2>
+                                <div class="card-actions">
+                                    <button id="run-segmentation-btn" class="btn btn-primary">
+                                        <i class="fas fa-cogs"></i> Chạy Phân Nhóm
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="segmentation-info-grid">
+                                    <div>
+                                        <h4>Mô hình sử dụng</h4>
+                                        <p>Để phân nhóm khách hàng, hệ thống sử dụng thuật toán <strong>KMeans Clustering</strong>, một phương pháp phân cụm không giám sát. Mô hình sẽ tự động chia các khách hàng thành các nhóm có đặc điểm tương đồng.</p>
+                                    </div>
+                                    <div>
+                                        <h4>Dữ liệu đầu vào</h4>
+                                        <p>Dữ liệu được tổng hợp từ bảng KhachHang và GiaoDich, với các thuộc tính được trích xuất và tính toán bao gồm:</p>
+                                        <ul>
+                                            <li><i class="fas fa-dollar-sign fa-fw" style="color: var(--success-color);"></i> Tổng số tiền gửi</li>
+                                            <li><i class="fas fa-exchange-alt fa-fw" style="color: var(--primary-color);"></i> Số lần giao dịch</li>
+                                            <li><i class="fas fa-calendar-check fa-fw" style="color: #f97316;"></i> Số năm gắn bó (thâm niên)</li>
+                                            <li><i class="fas fa-user fa-fw" style="color: #3b82f6;"></i> Tuổi của khách hàng</li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h4>Phân nhóm và gán nhãn</h4>
+                                        <p>Dựa trên kết quả, khách hàng được phân thành 3 nhóm chính:</p>
+                                        <ul>
+                                            <li><span class="segment-badge segment-vip">VIP</span>: Tổng tiền gửi lớn, giao dịch thường xuyên, gắn bó lâu dài.</li>
+                                            <li><span class="segment-badge segment-average">Trung bình</span>: Hoạt động ổn định nhưng không nổi bật.</li>
+                                            <li><span class="segment-badge segment-inactive">Không hoạt động</span>: Ít hoặc không thực hiện giao dịch.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="segmentation-results-container">
+                            <div class="initial-message">
+                                <p>Nhấn "Chạy Phân Nhóm" để bắt đầu phân tích và hiển thị kết quả phân nhóm khách hàng.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+        </main>
+    </div>
+    
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div id="customer-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title" id="customer-modal-title">Thêm Khách hàng mới</h2>
+                <button class="modal-close-btn" data-modal-id="customer-modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                 <form id="customer-form">
+                    <input type="hidden" id="customerId" name="customerId">
+                    <h3 class="form-section-title">Thông tin cá nhân</h3>
+                    <div class="form-grid">
+                        <div class="form-group"><label for="fullName">Họ và Tên</label><input type="text" id="fullName" name="fullName" required></div>
+                        <div class="form-group"><label for="dob">Ngày sinh</label><input type="date" id="dob" name="dob" required></div>
+                    </div>
+                     <h3 class="form-section-title">Thông tin định danh</h3>
+                     <div class="form-grid">
+                        <div class="form-group"><label for="idNumber">Số Giấy tờ (CCCD/CMND)</label><input type="text" id="idNumber" name="idNumber" required></div>
+                        <div class="form-group"><label for="issueDate">Ngày cấp</label><input type="date" id="issueDate" name="issueDate" required></div>
+                        <div class="form-group"><label for="issuePlace">Nơi cấp</label><input type="text" id="issuePlace" name="issuePlace" required></div>
+                        <div class="form-group"><label for="idExpiry">Hạn sử dụng</label><input type="date" id="idExpiry" name="idExpiry"></div>
+                    </div>
+                    <h3 class="form-section-title">Thông tin liên hệ</h3>
+                     <div class="form-grid">
+                         <div class="form-group"><label for="phone">Số điện thoại</label><input type="tel" id="phone" name="phone" required></div>
+                        <div class="form-group"><label for="email">Email</label><input type="email" id="email" name="email"></div>
+                        <div class="form-group" style="grid-column: 1 / -1;"><label for="address">Địa chỉ</label><input type="text" id="address" name="address" required></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-cancel-btn" data-modal-id="customer-modal">Hủy</button>
+                <button type="submit" form="customer-form" class="btn btn-primary">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-customer-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header"><h2 class="modal-title">Chi tiết Khách hàng</h2><button class="modal-close-btn" data-modal-id="view-customer-modal"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <h3 class="form-section-title">Thông tin cá nhân</h3>
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Mã KH</span><span class="detail-value" id="view-customer-maKH"></span></div>
+                    <div class="detail-item"><span class="detail-label">Họ và Tên</span><span class="detail-value" id="view-customer-fullName"></span></div>
+                    <div class="detail-item"><span class="detail-label">Ngày sinh</span><span class="detail-value" id="view-customer-dob"></span></div>
+                </div>
+                 <h3 class="form-section-title">Thông tin định danh</h3>
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Số Giấy tờ</span><span class="detail-value" id="view-customer-idNumber"></span></div>
+                    <div class="detail-item"><span class="detail-label">Ngày cấp</span><span class="detail-value" id="view-customer-issueDate"></span></div>
+                    <div class="detail-item"><span class="detail-label">Nơi cấp</span><span class="detail-value" id="view-customer-issuePlace"></span></div>
+                    <div class="detail-item"><span class="detail-label">Hạn sử dụng</span><span class="detail-value" id="view-customer-idExpiry"></span></div>
+                </div>
+                <h3 class="form-section-title">Thông tin liên hệ</h3>
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Số điện thoại</span><span class="detail-value" id="view-customer-phone"></span></div>
+                    <div class="detail-item"><span class="detail-label">Email</span><span class="detail-value" id="view-customer-email"></span></div>
+                    <div class="detail-item" style="grid-column: 1 / -1;"><span class="detail-label">Địa chỉ</span><span class="detail-value" id="view-customer-address"></span></div>
+                </div>
+                 <h3 class="form-section-title">Danh sách Sổ Tiết Kiệm</h3>
+                <div id="view-customer-books-list" class="table-container">
+                    </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary modal-cancel-btn" data-modal-id="view-customer-modal">Đóng</button></div>
+        </div>
+    </div>
+
+    <div id="open-book-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title">Mở Sổ Tiết Kiệm Mới</h2>
+                <button class="modal-close-btn" data-modal-id="open-book-modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="open-book-form">
+                    <div class="modal-step active" data-step="1">
+                        <h3 class="form-section-title">Bước 1: Thông tin cơ bản</h3>
+                        <div class="form-group searchable-dropdown">
+                            <label for="book-customerSearch">Tìm kiếm & Thêm Đồng sở hữu</label>
+                            <div class="customer-search-group">
+                                <input type="search" id="book-customerSearch" placeholder="Nhập Mã KH, Tên, hoặc SĐT...">
+                                <button type="button" id="add-customer-from-book-btn" class="btn btn-secondary"><i class="fas fa-plus"></i> Thêm mới</button>
+                            </div>
+                             <div class="search-results" id="book-customerSearchResults"></div>
+                        </div>
+                        <label>Danh sách chủ sở hữu</label>
+                        <div id="book-selected-customers-list" class="selected-customers-list"></div>
+                         <div class="form-group">
+                            <label for="depositAmount">Số tiền gửi (VND)</label>
+                            <input type="number" id="depositAmount" required placeholder="VD: 100000000">
+                        </div>
+                    </div>
+
+                    <div class="modal-step" data-step="2">
+                        <h3 class="form-section-title">Bước 2: Chọn Loại sổ tiết kiệm</h3>
+                        <div class="form-grid">
+                             <div class="form-group">
+                                <label for="productType">Tên loại sổ</label>
+                                <select id="productType" required>
+                                    <option value="">-- Chọn loại sổ --</option>
+                                </select>
+                            </div>
+                             <div class="form-group">
+                                <label>Đơn vị tiền</label>
+                                <input type="text" id="productCurrency" disabled>
+                            </div>
+                             <div class="form-group">
+                                <label>Hình thức gửi</label>
+                                <input type="text" value="Tại quầy" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label for="productInterestPayment">Hình thức trả lãi</label>
+                                <select id="productInterestPayment" required disabled>
+                                     <option value="">-- Chọn loại sổ trước --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-step" data-step="3">
+                        <h3 class="form-section-title">Bước 3: Chọn Kỳ hạn & Lãi suất</h3>
+                        <div class="form-grid">
+                             <div class="form-group">
+                                <label for="productTerm">Kỳ hạn</label>
+                                <select id="productTerm" required disabled>
+                                    <option value="">-- Chọn loại sổ trước --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Mức tiền áp dụng</label>
+                                <input type="text" id="rateTier" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Lãi suất tháng đầu</label>
+                                <input type="text" id="rateFirstMonth" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Lãi suất các tháng sau</label>
+                                <input type="text" id="rateAfterMonth" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Ngày áp dụng</label>
+                                <input type="text" id="rateDate" disabled>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-step" data-step="4">
+                        <h3 class="form-section-title">Bước 4: Xác nhận thông tin</h3>
+                        <div class="summary-grid">
+                            <div class="details-row" style="grid-column: 1 / -1; align-items: start;">
+                                <span>Chủ sở hữu:</span> 
+                                <ul id="summary-customer-list" class="summary-customer-list"></ul>
+                            </div>
+                            <div class="details-row" style="grid-column: 1 / -1;"><span>Số tiền gửi:</span> <span id="summary-amount"></span></div>
+                            <hr style="grid-column: 1 / -1; border: none; border-top: 1px solid var(--border-color); margin: 0.5rem 0;">
+                            <div class="details-row"><span>Tên loại sổ:</span> <span id="summary-product-name"></span></div>
+                            <div class="details-row"><span>Kỳ hạn:</span> <span id="summary-term"></span></div>
+                             <div class="details-row"><span>Lãi suất:</span> <span id="summary-rate"></span></div>
+                            <div class="details-row"><span>Ngày mở sổ:</span> <span id="summary-open-date"></span></div>
+                            <div class="details-row"><span>Ngày đến hạn:</span> <span id="summary-maturity-date"></span></div>
+                             <div class="details-row"><span>Hình thức trả lãi:</span> <span id="summary-payment-method"></span></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer stepper-footer">
+                <div class="modal-stepper">
+                    <div class="step active" data-step-id="1">1</div><div class="step-line"></div>
+                    <div class="step" data-step-id="2">2</div><div class="step-line"></div>
+                    <div class="step" data-step-id="3">3</div><div class="step-line"></div>
+                    <div class="step" data-step-id="4">4</div>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary modal-prev-step-btn" style="display: none;">Quay lại</button>
+                    <button type="button" class="btn btn-primary modal-next-step-btn">Tiếp theo</button>
+                    <button type="submit" form="open-book-form" class="btn btn-primary modal-confirm-btn" style="display: none;">Xác nhận mở sổ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="view-book-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header"><h2 class="modal-title">Chi tiết Sổ Tiết Kiệm</h2><button class="modal-close-btn" data-modal-id="view-book-modal"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <h3 class="form-section-title">Thông tin Sổ</h3>
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Mã sổ</span><span class="detail-value" id="view-book-maSo"></span></div>
+                    <div class="detail-item"><span class="detail-label">Trạng thái</span><span class="detail-value" id="view-book-trangThai"></span></div>
+                    <div class="detail-item"><span class="detail-label">Ngày mở sổ</span><span class="detail-value" id="view-book-ngayMo"></span></div>
+                    <div class="detail-item"><span class="detail-label">Ngày đến hạn</span><span class="detail-value" id="view-book-ngayDenHan"></span></div>
+                    <div class="detail-item" style="grid-column: 1 / -1;"><span class="detail-label">Số tiền gốc</span><span class="detail-value" id="view-book-soTienGoc"></span></div>
+                </div>
+                 <h3 class="form-section-title">Thông tin Chủ sở hữu</h3>
+                <div id="view-book-owners-list" class="table-container">
+                </div>
+
+                <h3 class="form-section-title">Thông tin Sản phẩm & Lãi suất</h3>
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Tên loại sổ</span><span class="detail-value" id="view-book-tenLoaiSo"></span></div>
+                    <div class="detail-item"><span class="detail-label">Hình thức gửi</span><span class="detail-value" id="view-book-hinhThucGui"></span></div>
+                    <div class="detail-item"><span class="detail-label">Hình thức trả lãi</span><span class="detail-value" id="view-book-hinhThucTraLai"></span></div>
+                    <div class="detail-item"><span class="detail-label">Kỳ trả lãi</span><span class="detail-value" id="view-book-kyTraLai"></span></div>
+                    <div class="detail-item"><span class="detail-label">Kỳ hạn</span><span class="detail-value" id="view-book-kyHan"></span></div>
+                    <div class="detail-item"><span class="detail-label">Mức tiền</span><span class="detail-value" id="view-book-mucTien"></span></div>
+                    <div class="detail-item"><span class="detail-label">Lãi suất tháng đầu</span><span class="detail-value" id="view-book-lsThangDau"></span></div>
+                    <div class="detail-item"><span class="detail-label">Lãi suất các tháng sau</span><span class="detail-value" id="view-book-lsThangSau"></span></div>
+                </div>
+
+                 <h3 class="form-section-title">Lịch sử Giao Dịch</h3>
+                <div id="view-book-transactions-list" class="table-container">
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary modal-cancel-btn" data-modal-id="view-book-modal">Đóng</button></div>
+        </div>
+    </div>
+
+    <div id="book-modal" class="modal-overlay">
+         <div class="modal-container">
+            <div class="modal-header"><h2 class="modal-title" id="book-modal-title">Sửa Sổ Tiết Kiệm</h2><button class="modal-close-btn" data-modal-id="book-modal"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <form id="book-form">
+                    <div class="form-grid">
+                        <div class="form-group"><label for="book-maSo">Mã sổ</label><input type="text" id="book-maSo" disabled></div>
+                        <div class="form-group"><label for="book-trangThai">Trạng thái</label><select id="book-trangThai"><option value="active">Đang hoạt động</option><option value="matured">Đáo hạn</option><option value="ended">Đã đóng</option></select></div>
+                        <div class="form-group"><label for="book-ngayMo">Ngày mở sổ</label><input type="date" id="book-ngayMo"></div>
+                        <div class="form-group"><label for="book-ngayDenHan">Ngày đến hạn</label><input type="date" id="book-ngayDenHan"></div>
+                        <div class="form-group" style="grid-column: 1 / -1;"><label for="book-soTienGoc">Số tiền gốc</label><input type="number" id="book-soTienGoc"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary modal-cancel-btn" data-modal-id="book-modal">Hủy</button><button type="submit" form="book-form" class="btn btn-primary">Lưu thay đổi</button></div>
+        </div>
+    </div>
+
+    <div id="add-transaction-modal" class="modal-overlay">
+         <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title">Thêm Giao Dịch Mới</h2>
+                <button class="modal-close-btn" data-modal-id="add-transaction-modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-transaction-form">
+                    <div class="modal-step active" data-step="1">
+                        <h3 class="form-section-title">Bước 1: Chọn loại giao dịch</h3>
+                        <div class="form-group">
+                            <select id="transaction-type-select" class="form-control">
+                                <option value="deposit">Gửi tiền</option>
+                                <option value="withdraw_principal">Rút gốc</option>
+                                <option value="withdraw_interest">Rút lãi</option>
+                                <option value="settlement">Tất toán</option>
+                                <option value="transfer">Chuyển quyền sở hữu</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-step" data-step="2">
+                        <h3 class="form-section-title">Bước 2: Chọn người thực hiện</h3>
+                        <div class="form-group searchable-dropdown">
+                            <label for="transaction-customer-search">Tìm & Thêm người thực hiện</label>
+                            <div class="customer-search-group">
+                                <input type="search" id="transaction-customer-search" placeholder="Nhập Mã KH, Tên, SĐT...">
+                                <select id="transaction-customer-role" style="width: 150px;">
+                                    <option value="Chủ sở hữu">Chủ sở hữu</option>
+                                    <option value="Ủy quyền">Ủy quyền</option>
+                                </select>
+                                <button type="button" id="add-performer-btn" class="btn btn-secondary"><i class="fas fa-plus"></i> Thêm</button>
+                            </div>
+                             <div class="search-results" id="trans-customer-search-results"></div>
+                        </div>
+                        <label>Danh sách người thực hiện</label>
+                        <div id="transaction-customers-list" class="selected-customers-list"></div>
+                    </div>
+                    <div class="modal-step" data-step="3">
+                        <h3 class="form-section-title">Bước 3: Chọn sổ tiết kiệm</h3>
+                        <div id="owner-book-select-container" class="form-group">
+                            <label for="owner-book-select">Chọn sổ tiết kiệm của chủ sở hữu</label>
+                            <select id="owner-book-select">
+                                <option value="">-- Chọn sổ --</option>
+                                <option value="STK00123">STK00123 - Nguyễn Văn An</option>
+                            </select>
+                        </div>
+                        <div id="authorized-book-input-container" class="form-group" style="display: none;">
+                            <label for="authorized-book-input">Nhập mã số tiết kiệm</label>
+                            <input type="text" id="authorized-book-input" placeholder="Nhập mã STK...">
+                        </div>
+                     </div>
+                     <div class="modal-step" data-step="4">
+                        <h3 class="form-section-title">Bước 4: Chi tiết và số tiền</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Số tiền gốc hiện tại</label>
+                                <input type="text" id="current-principal" value="100,000,000 VNĐ" disabled>
+                            </div>
+                             <div class="form-group">
+                                <label>Tiền lãi tạm tính</label>
+                                <input type="text" id="current-interest" value="1,500,000 VNĐ" disabled>
+                            </div>
+                             <div class="form-group" style="grid-column: 1 / -1;">
+                                <label for="transaction-amount">Số tiền giao dịch</label>
+                                <input type="number" id="transaction-amount" required>
+                            </div>
+                        </div>
+                     </div>
+                    <div class="modal-step" data-step="5">
+                         <h3 class="form-section-title">Bước 5: Xác nhận thông tin</h3>
+                        <div class="summary-grid">
+                            <div class="details-row"><span>Loại giao dịch:</span> <span id="summary-trans-type"></span></div>
+                             <div class="details-row"><span>Sổ giao dịch:</span> <span id="summary-trans-book"></span></div>
+                            <div class="details-row" style="grid-column: 1 / -1; align-items: start;">
+                                <span>Người thực hiện:</span> 
+                                <ul id="summary-trans-performer-list" class="summary-customer-list"></ul>
+                            </div>
+                            <div class="details-row" style="grid-column: 1 / -1;"><span>Số tiền:</span> <span id="summary-trans-amount" style="font-weight: bold; color: var(--danger-color);"></span></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+             <div class="modal-footer stepper-footer">
+                <div class="modal-stepper" data-modal="add-transaction">
+                    <div class="step active" data-step-id="1">1</div><div class="step-line"></div><div class="step" data-step-id="2">2</div><div class="step-line"></div><div class="step" data-step-id="3">3</div><div class="step-line"></div><div class="step" data-step-id="4">4</div><div class="step-line"></div><div class="step" data-step-id="5">5</div>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary modal-prev-step-btn" style="display: none;">Quay lại</button>
+                    <button type="button" class="btn btn-primary modal-next-step-btn">Tiếp theo</button>
+                    <button type="submit" form="add-transaction-form" class="btn btn-primary modal-confirm-btn" style="display: none;">Xác nhận</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="view-transaction-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header"><h2 class="modal-title">Chi tiết Giao Dịch</h2><button class="modal-close-btn" data-modal-id="view-transaction-modal"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <h3 class="form-section-title">Thông tin Giao Dịch</h3>
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Mã giao dịch</span><span class="detail-value" id="view-trans-maGD"></span></div>
+                    <div class="detail-item"><span class="detail-label">Ngày giao dịch</span><span class="detail-value" id="view-trans-ngayGD"></span></div>
+                    <div class="detail-item"><span class="detail-label">Loại giao dịch</span><span class="detail-value" id="view-trans-loaiGD"></span></div>
+                    <div class="detail-item"><span class="detail-label">Số tiền</span><span class="detail-value" id="view-trans-soTien"></span></div>
+                    <div class="detail-item"><span class="detail-label">Trạng thái</span><span class="detail-value" id="view-trans-trangThai"></span></div>
+                </div>
+                 <h3 class="form-section-title">Thông tin Sổ Tiết Kiệm</h3>
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Mã sổ</span><span class="detail-value" id="view-trans-book-maSo"></span></div>
+                    <div class="detail-item"><span class="detail-label">Ngày mở sổ</span><span class="detail-value" id="view-trans-book-ngayMo"></span></div>
+                    <div class="detail-item"><span class="detail-label">Ngày đến hạn</span><span class="detail-value" id="view-trans-book-ngayDenHan"></span></div>
+                </div>
+                <h3 class="form-section-title">Thông tin Khách Hàng</h3>
+                <div id="view-transaction-customers-list" class="table-container">
+                    </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary modal-cancel-btn" data-modal-id="view-transaction-modal">Đóng</button></div>
+        </div>
+    </div>
+
+    <div id="type-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header"><h2 class="modal-title" id="type-modal-title"></h2><button class="modal-close-btn" data-modal-id="type-modal"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <form id="type-form">
+                    <div class="form-grid">
+                        <div class="form-group"><label for="type-tenLoaiSo">Tên loại sổ</label><input type="text" id="type-tenLoaiSo" required></div>
+                        <div class="form-group"><label for="type-donViTien">Đơn vị tiền</label><select id="type-donViTien"><option>VND</option><option>USD</option></select></div>
+                        <div class="form-group"><label for="type-hinhThucGui">Hình thức gửi tiền</label><select id="type-hinhThucGui"><option>Tại quầy</option><option>Online</option></select></div>
+                        <div class="form-group"><label for="type-hinhThucTraLai">Hình thức trả lãi</label><select id="type-hinhThucTraLai"><option>Cuối kỳ</option><option>Hàng tháng</option><option>Hàng quý</option></select></div>
+                        <div class="form-group"><label for="type-kyTraLai">Kỳ trả lãi</label><input type="text" id="type-kyTraLai" placeholder="VD: 1 tháng"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary modal-cancel-btn" data-modal-id="type-modal">Hủy</button><button type="submit" form="type-form" class="btn btn-primary">Lưu</button></div>
+        </div>
+    </div>
+    
+    <div id="rate-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header"><h2 class="modal-title" id="rate-modal-title"></h2><button class="modal-close-btn" data-modal-id="rate-modal"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <form id="rate-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="rate-appliedType">Loại sổ áp dụng</label>
+                            <select id="rate-appliedType" required>
+                                <option value="">-- Chọn loại sổ --</option>
+                                <option value="TIETKIEM_12T">Tiết kiệm thường 12 tháng</option>
+                                <option value="PHATLOC_24T">Tiết kiệm phát lộc</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label for="rate-kyHan">Kỳ hạn</label><input type="text" id="rate-kyHan" placeholder="VD: 12 tháng" required></div>
+                        <div class="form-group"><label for="rate-mucTien">Mức tiền</label><input type="text" id="rate-mucTien" placeholder="VD: Trên 1,000,000" required></div>
+                        <div class="form-group"><label for="rate-thangDau">Lãi suất tháng đầu (%)</label><input type="number" step="0.01" id="rate-thangDau" required></div>
+                        <div class="form-group"><label for="rate-cacThangSau">Lãi suất các tháng sau (%)</label><input type="number" step="0.01" id="rate-cacThangSau" required></div>
+                        <div class="form-group"><label for="rate-ngayApDung">Ngày áp dụng</label><input type="date" id="rate-ngayApDung" required></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary modal-cancel-btn" data-modal-id="rate-modal">Hủy</button><button type="submit" form="rate-form" class="btn btn-primary">Lưu</button></div>
+        </div>
+    </div>
+
+    <div id="delete-confirm-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header"><h2 class="modal-title">Xác nhận Xóa</h2><button class="modal-close-btn" data-modal-id="delete-confirm-modal"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <p id="confirm-message">Bạn có chắc chắn muốn xóa mục này? Hành động này không thể hoàn tác.</p>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary modal-cancel-btn" data-modal-id="delete-confirm-modal">Hủy</button><button type="button" id="confirm-delete-btn" class="btn btn-danger">Xóa</button></div>
+        </div>
+    </div>
+
+    <div id="report-modal" class="modal-overlay">
+        <div class="modal-container" style="max-width: 1100px;">
+            <div class="modal-header"><h2 class="modal-title" id="report-modal-title"></h2><button class="modal-close-btn" data-modal-id="report-modal"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body" id="report-modal-body">
+                </div>
+            <div class="modal-footer"><button class="btn btn-secondary modal-cancel-btn" data-modal-id="report-modal">Đóng</button></div>
+        </div>
+    </div>
+    
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // --- AUTHENTICATION & PERMISSION CHECK ---
+        document.addEventListener('DOMContentLoaded', function () {
+            const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+            if (isLoggedIn !== 'true') {
+                window.location.href = 'index.html'; // Chuyển về trang đăng nhập nếu chưa đăng nhập
+                return; // Dừng thực thi script
+            }
+
+            // --- Lấy thông tin người dùng và phân quyền ---
+            const username = sessionStorage.getItem('username');
+            const userRole = sessionStorage.getItem('userRole');
+            
+            // Cập nhật giao diện người dùng
+            const userNameDisplay = document.getElementById('user-name-display');
+            const userRoleDisplay = document.getElementById('user-role-display');
+            const userAvatarInitials = document.getElementById('user-avatar-initials');
+
+            if(username) {
+                userNameDisplay.textContent = username;
+                userAvatarInitials.textContent = username.charAt(0).toUpperCase();
+            }
+            if(userRole) {
+                userRoleDisplay.textContent = userRole === 'admin' ? 'Quản trị viên' : 'Nhân viên';
+            }
+
+            // Phân quyền: Thêm class vào body nếu là staff
+            if (userRole === 'staff') {
+                document.body.classList.add('user-role-staff');
+            }
+
+            // --- XỬ LÝ ĐĂNG XUẤT ---
+            const logoutBtn = document.getElementById('logout-btn');
+            logoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                sessionStorage.clear(); // Xóa toàn bộ session
+                window.location.href = 'index.html'; // Chuyển về trang đăng nhập
+            });
+
+            // --- CODE GIAO DIỆN CHÍNH (đặt bên trong DOMContentLoaded) ---
+            const navMenu = document.getElementById('nav-menu');
+            const allPages = document.querySelectorAll('.page');
+            const pageTitleEl = document.getElementById('page-title');
+            const breadcrumbCurrentEl = document.getElementById('breadcrumb-current');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            const userMenuButton = document.getElementById('user-menu-button');
+            const userDropdown = document.getElementById('user-dropdown');
+            const toastContainer = document.getElementById('toast-container');
+            const contentArea = document.querySelector('.content-area');
+            
+            // --- MOCK DATA ---
+            const mockCustomers = [
+                { id: 1, maKH: 'KH001', tenKH: 'Nguyễn Văn An', dob: '1985-08-15', idNumber: '012345678', issueDate: '2020-01-15', issuePlace: 'Cục CSQLHC về TTXH', idExpiry: '2030-08-15', phone: '0905123456', email: 'an.nguyen@email.com', address: '123 Đường Láng, Đống Đa, Hà Nội' },
+                { id: 2, maKH: 'KH002', tenKH: 'Trần Thị Bích', dob: '1990-11-20', idNumber: '876543210', issueDate: '2021-05-20', issuePlace: 'CA TP.HCM', idExpiry: '2035-11-20', phone: '0913789123', email: 'bich.tran@email.com', address: '456 Lê Lợi, Quận 1, TP.HCM' },
+                { id: 3, maKH: 'KH003', tenKH: 'Lê Văn Cường', dob: '1988-03-10', idNumber: '112233445', issueDate: '2019-10-10', issuePlace: 'CA TP. Đà Nẵng', idExpiry: '2033-03-10', phone: '0987654321', email: 'cuong.le@email.com', address: '789 Nguyễn Văn Linh, Đà Nẵng' },
+            ];
+            
+            const mockProducts = {
+                'TIETKIEM_12T': { name: 'Tiết kiệm thường 12 tháng', currency: 'VND', paymentMethods: ['Cuối kỳ'], terms: { '6': { firstMonth: 4.5, after: 4.5, date: '2024-01-01' }, '12': { firstMonth: 5.5, after: 5.2, date: '2024-01-01' } } },
+                'PHATLOC_24T': { name: 'Tiết kiệm phát lộc', currency: 'VND', paymentMethods: ['Hàng tháng', 'Hàng quý'], terms: { '24': { firstMonth: 6.0, after: 6.0, date: '2024-01-01' } } },
+                'ONLINE_KKH': { name: 'Tiết kiệm online không kỳ hạn', currency: 'USD', paymentMethods: ['Cuối kỳ'], terms: { '0': { firstMonth: 1.0, after: 1.0, date: '2024-01-01' } } }
+            };
+
+            let transactionPerformers = [];
+            let openBookCustomers = [];
+
+
+            // --- Navigation Logic ---
+            navMenu.addEventListener('click', function(e) {
+                const navLink = e.target.closest('.nav-link');
+                if (!navLink) return;
+                e.preventDefault();
+                
+                const targetId = navLink.dataset.target + '-page';
+                const targetPage = document.getElementById(targetId);
+                
+                navMenu.querySelector('.nav-link.active')?.classList.remove('active');
+                navLink.classList.add('active');
+                
+                allPages.forEach(p => p.classList.remove('active'));
+                if (targetPage) targetPage.classList.add('active');
+                
+                const pageName = navLink.querySelector('.nav-text').textContent;
+                pageTitleEl.textContent = pageName;
+                breadcrumbCurrentEl.textContent = pageName;
+                
+                if (window.innerWidth <= 1024) closeMobileMenu();
+            });
+            
+            // --- Toast Notification ---
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
+                toast.innerHTML = `<i class="toast-icon fas ${icon}"></i> <div>${message}</div>`;
+                toastContainer.appendChild(toast);
+                setTimeout(() => {
+                    toast.remove();
+                }, 5000);
+            }
+
+            // --- Generic Modal Logic ---
+            function openModal(modalId, options = {}) {
+                const modal = document.getElementById(modalId);
+                if (!modal) return;
+                
+                if (options.isSubModal) {
+                    modal.style.zIndex = '1020';
+                } else {
+                    modal.style.zIndex = '';
+                }
+
+                modal.classList.add('active');
+                document.body.classList.add('modal-open');
+            }
+            
+            function closeModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.remove('active');
+                }
+                if (document.querySelectorAll('.modal-overlay.active').length === 0) {
+                     document.body.classList.remove('modal-open');
+                }
+            }
+
+            document.querySelectorAll('.modal-close-btn, .modal-cancel-btn').forEach(btn => {
+                const modalId = btn.getAttribute('data-modal-id');
+                btn.addEventListener('click', () => closeModal(modalId));
+            });
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeModal(modal.id)
+                });
+            });
+
+            // --- DELEGATED EVENT LISTENERS FOR DYNAMIC CONTENT ---
+            contentArea.addEventListener('click', function(e) {
+                const target = e.target;
+                const row = target.closest('tr');
+                if (!row) return;
+
+                // View Customer
+                if (target.closest('.view-customer-btn')) {
+                    const customerId = row.cells[0].textContent;
+                    const customerData = mockCustomers.find(c => c.maKH === customerId);
+                    if (customerData) {
+                        document.getElementById('view-customer-maKH').textContent = customerData.maKH;
+                        document.getElementById('view-customer-fullName').textContent = customerData.tenKH;
+                        document.getElementById('view-customer-dob').textContent = customerData.dob;
+                        document.getElementById('view-customer-idNumber').textContent = customerData.idNumber;
+                        document.getElementById('view-customer-issueDate').textContent = customerData.issueDate;
+                        document.getElementById('view-customer-issuePlace').textContent = customerData.issuePlace;
+                        document.getElementById('view-customer-idExpiry').textContent = customerData.idExpiry;
+                        document.getElementById('view-customer-phone').textContent = customerData.phone;
+                        document.getElementById('view-customer-email').textContent = customerData.email;
+                        document.getElementById('view-customer-address').textContent = customerData.address;
+                        
+                        const bookListContainer = document.getElementById('view-customer-books-list');
+                        bookListContainer.innerHTML = `
+                            <table class="data-table">
+                                <thead><tr><th>Mã Sổ</th><th>Tên Loại Sổ</th><th>Số Tiền Gốc</th><th>Ngày Mở</th><th>Ngày Đáo Hạn</th></tr></thead>
+                                <tbody>
+                                    <tr><td>STK00123</td><td>Tiết kiệm thường 12 tháng</td><td>100,000,000 VNĐ</td><td>01/06/2024</td><td>01/06/2025</td></tr>
+                                    <tr><td>STK00128</td><td>Tiết kiệm phát lộc</td><td>250,000,000 VNĐ</td><td>10/06/2024</td><td>10/06/2026</td></tr>
+                                </tbody>
+                            </table>`;
+                        openModal('view-customer-modal');
+                    }
+                }
+
+                // Edit Customer
+                if (target.closest('.edit-customer-btn')) {
+                    const customerId = row.cells[0].textContent;
+                    const customerData = mockCustomers.find(c => c.maKH === customerId);
+                    if (customerData) {
+                        document.getElementById('customer-modal-title').textContent = 'Sửa thông tin Khách hàng';
+                        const form = document.getElementById('customer-form');
+                        form.reset();
+                        form.querySelector('#fullName').value = customerData.tenKH;
+                        form.querySelector('#dob').value = customerData.dob;
+                        form.querySelector('#idNumber').value = customerData.idNumber;
+                        form.querySelector('#issueDate').value = customerData.issueDate;
+                        form.querySelector('#issuePlace').value = customerData.issuePlace;
+                        form.querySelector('#idExpiry').value = customerData.idExpiry;
+                        form.querySelector('#phone').value = customerData.phone;
+                        form.querySelector('#email').value = customerData.email;
+                        form.querySelector('#address').value = customerData.address;
+                        openModal('customer-modal');
+                    }
+                }
+                
+                // View Savings Book
+                if (target.closest('.view-book-btn')) {
+                    const customerName = row.cells[1].textContent;
+                    const customerData = mockCustomers.find(c => c.tenKH === customerName);
+                    
+                    document.getElementById('view-book-maSo').textContent = row.cells[0].textContent;
+                    document.getElementById('view-book-trangThai').innerHTML = row.cells[5].innerHTML;
+                    document.getElementById('view-book-ngayMo').textContent = row.cells[2].textContent;
+                    document.getElementById('view-book-ngayDenHan').textContent = row.cells[3].textContent;
+                    document.getElementById('view-book-soTienGoc').textContent = row.cells[4].textContent;
+
+                    const ownerListContainer = document.getElementById('view-book-owners-list');
+                    if (customerData) {
+                         ownerListContainer.innerHTML = `
+                            <table class="data-table">
+                                <thead><tr><th>Mã KH</th><th>Tên KH</th><th>Số giấy tờ</th><th>SĐT</th></tr></thead>
+                                <tbody>
+                                    <tr>
+                                        <td>${customerData.maKH}</td>
+                                        <td>${customerData.tenKH}</td>
+                                        <td>${customerData.idNumber}</td>
+                                        <td>${customerData.phone}</td>
+                                    </tr>
+                                </tbody>
+                            </table>`;
+                    }
+                    
+                    // [MODIFIED] Populate new fields with dummy data
+                    document.getElementById('view-book-tenLoaiSo').textContent = 'Tiết kiệm thường 12 tháng';
+                    document.getElementById('view-book-hinhThucGui').textContent = 'Tại quầy';
+                    document.getElementById('view-book-hinhThucTraLai').textContent = 'Cuối kỳ';
+                    document.getElementById('view-book-kyTraLai').textContent = '12 tháng';
+                    document.getElementById('view-book-kyHan').textContent = '12 tháng';
+                    document.getElementById('view-book-mucTien').textContent = 'Trên 1,000,000 VND';
+                    document.getElementById('view-book-lsThangDau').textContent = '5.5% / năm';
+                    document.getElementById('view-book-lsThangSau').textContent = '5.2% / năm';
+
+                    const transListContainer = document.getElementById('view-book-transactions-list');
+                    transListContainer.innerHTML = `
+                        <table class="data-table">
+                            <thead><tr><th>Mã GD</th><th>Loại GD</th><th>Ngày GD</th><th>Số Tiền</th><th>Trạng Thái</th></tr></thead>
+                            <tbody>
+                                <tr><td>GD240601-001</td><td>Gửi tiền</td><td>01/06/2024</td><td style="color:var(--success-color)">+100,000,000 VNĐ</td><td>Thành công</td></tr>
+                                <tr><td>GD240701-005</td><td>Rút lãi</td><td>01/07/2024</td><td style="color:var(--danger-color)">-550,000 VNĐ</td><td>Thành công</td></tr>
+                            </tbody>
+                        </table>`;
+                    openModal('view-book-modal');
+                }
+
+                // Edit Savings Book
+                 if (target.closest('.edit-book-btn')) {
+                    document.getElementById('book-form').reset();
+                    document.getElementById('book-maSo').value = row.cells[0].textContent;
+                    openModal('book-modal');
+                }
+
+                // View Transaction
+                if (target.closest('.view-transaction-btn')) {
+                    document.getElementById('view-trans-maGD').textContent = row.cells[0].textContent;
+                    document.getElementById('view-trans-ngayGD').textContent = row.cells[1].textContent;
+                    document.getElementById('view-trans-loaiGD').textContent = row.cells[2].textContent;
+                    document.getElementById('view-trans-soTien').innerHTML = `<span style="color: ${row.cells[3].style.color}; font-weight: 600;">${row.cells[3].textContent}</span>`;
+                    document.getElementById('view-trans-trangThai').textContent = row.cells[4].textContent;
+                    document.getElementById('view-trans-book-maSo').textContent = 'STK00123';
+                    document.getElementById('view-trans-book-ngayMo').textContent = '01/06/2024';
+                    document.getElementById('view-trans-book-ngayDenHan').textContent = '01/06/2025';
+                    
+                    const transCustomerListContainer = document.getElementById('view-transaction-customers-list');
+                    transCustomerListContainer.innerHTML = `
+                        <table class="data-table">
+                            <thead><tr><th>Mã KH</th><th>Họ và Tên</th><th>Vai trò</th><th>SĐT</th></tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td>KH001</td>
+                                    <td>Nguyễn Văn An</td>
+                                    <td>Chủ sở hữu</td>
+                                    <td>0905123456</td>
+                                </tr>
+                            </tbody>
+                        </table>`;
+                    openModal('view-transaction-modal');
+                }
+
+                // Edit Savings Type
+                if (target.closest('.edit-type-btn')) {
+                    document.getElementById('type-modal-title').textContent = 'Sửa Loại sổ tiết kiệm';
+                    document.getElementById('type-tenLoaiSo').value = row.cells[1].textContent;
+                    openModal('type-modal');
+                }
+                
+                // Edit Rate
+                if (target.closest('.edit-rate-btn')) {
+                    document.getElementById('rate-modal-title').textContent = 'Sửa Lãi suất';
+                    document.getElementById('rate-kyHan').value = row.cells[1].textContent;
+                    document.getElementById('rate-mucTien').value = row.cells[2].textContent;
+                    document.getElementById('rate-thangDau').value = parseFloat(row.cells[3].textContent);
+                    document.getElementById('rate-cacThangSau').value = parseFloat(row.cells[4].textContent);
+                    document.getElementById('rate-ngayApDung').value = '2024-06-01';
+                    openModal('rate-modal');
+                }
+
+                // Generic Delete Button
+                if (target.closest('.delete')) {
+                    const itemType = target.closest('.delete-customer-btn') ? 'khách hàng' :
+                                   target.closest('.delete-book-btn') ? 'sổ tiết kiệm' :
+                                   target.closest('.delete-type-btn') ? 'loại sổ' :
+                                   target.closest('.delete-rate-btn') ? 'lãi suất' :
+                                   target.closest('.delete-transaction-btn') ? 'giao dịch' : 'mục';
+                    const itemName = (itemType === 'giao dịch' || itemType === 'lãi suất' || itemType === 'loại sổ') ? row.cells[0].textContent : row.cells[1].textContent;
+                    const message = `Bạn có chắc chắn muốn xóa ${itemType} "${itemName}"? Hành động này không thể hoàn tác.`;
+                    showDeleteConfirm(message, () => {
+                        row.remove();
+                        showToast(`Đã xóa ${itemType} thành công.`);
+                    });
+                }
+            });
+
+            // --- Add Buttons ---
+            document.getElementById('add-customer-btn').addEventListener('click', () => {
+                 document.getElementById('customer-modal-title').textContent = 'Thêm Khách hàng mới';
+                 document.getElementById('customer-form').reset();
+                 openModal('customer-modal');
+            });
+            document.querySelector('.open-book-btn').addEventListener('click', () => {
+                initOpenBookModal();
+                openModal('open-book-modal');
+            });
+            document.querySelector('.add-transaction-btn').addEventListener('click', () => {
+                 initTransactionModal();
+                 openModal('add-transaction-modal');
+            });
+            document.querySelector('#types-page .add-type-btn').addEventListener('click', () => {
+                 document.getElementById('type-modal-title').textContent = 'Thêm Loại sổ tiết kiệm mới';
+                 document.getElementById('type-form').reset();
+                 openModal('type-modal');
+            });
+            document.querySelector('#rates-page .add-rate-btn').addEventListener('click', () => {
+                 document.getElementById('rate-modal-title').textContent = 'Thêm Lãi suất mới';
+                 document.getElementById('rate-form').reset();
+                 openModal('rate-modal');
+            });
+            
+            // --- Form Submissions ---
+            document.getElementById('customer-form').addEventListener('submit', (e) => { e.preventDefault(); closeModal('customer-modal'); showToast('Lưu khách hàng thành công!'); });
+            document.getElementById('book-form').addEventListener('submit', (e) => { e.preventDefault(); closeModal('book-modal'); showToast('Cập nhật sổ tiết kiệm thành công!'); });
+            document.getElementById('open-book-form').addEventListener('submit', (e) => { e.preventDefault(); closeModal('open-book-modal'); showToast('Mở sổ tiết kiệm thành công!'); });
+            document.getElementById('add-transaction-form').addEventListener('submit', (e) => { e.preventDefault(); closeModal('add-transaction-modal'); showToast('Thêm giao dịch thành công!'); });
+            document.getElementById('type-form').addEventListener('submit', (e) => { e.preventDefault(); closeModal('type-modal'); showToast('Lưu loại sổ thành công!'); });
+            document.getElementById('rate-form').addEventListener('submit', (e) => { e.preventDefault(); closeModal('rate-modal'); showToast('Lưu lãi suất thành công!'); });
+            
+
+            // --- Delete Confirmation Logic ---
+            function showDeleteConfirm(message, onConfirm) {
+                document.getElementById('confirm-message').textContent = message;
+                openModal('delete-confirm-modal');
+                const confirmBtn = document.getElementById('confirm-delete-btn');
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                newConfirmBtn.addEventListener('click', () => {
+                    onConfirm();
+                    closeModal('delete-confirm-modal');
+                }, { once: true });
+            }
+
+            // --- Multi-Step Modal Factory ---
+            function setupStepper(modalId, onNextCallback = null) {
+                const modal = document.getElementById(modalId);
+                if(!modal) return;
+                
+                const steps = modal.querySelectorAll('.modal-step');
+                const prevBtn = modal.querySelector('.modal-prev-step-btn');
+                const nextBtn = modal.querySelector('.modal-next-step-btn');
+                const confirmBtn = modal.querySelector('.modal-confirm-btn');
+                const stepperIcons = modal.querySelectorAll('.modal-stepper .step');
+                let currentStep = 1;
+                
+                function updateUI() {
+                    steps.forEach((step, index) => step.classList.toggle('active', index === currentStep - 1));
+                    stepperIcons.forEach((icon, index) => {
+                        icon.classList.remove('active', 'completed');
+                        if (index < currentStep - 1) icon.classList.add('completed');
+                        else if (index === currentStep - 1) icon.classList.add('active');
+                    });
+                    if(prevBtn) prevBtn.style.display = currentStep > 1 ? 'inline-flex' : 'none';
+                    if(nextBtn) nextBtn.style.display = currentStep < steps.length ? 'inline-flex' : 'none';
+                    if(confirmBtn) confirmBtn.style.display = currentStep === steps.length ? 'inline-flex' : 'none';
+                }
+
+                if(nextBtn) nextBtn.addEventListener('click', () => {
+                     if (currentStep < steps.length) {
+                        if(onNextCallback && !onNextCallback(currentStep)) return;
+                        currentStep++;
+                        updateUI();
+                    }
+                });
+
+                if(prevBtn) prevBtn.addEventListener('click', () => {
+                     if (currentStep > 1) {
+                        currentStep--;
+                        updateUI();
+                    }
+                });
+                updateUI(); // Initial call
+            }
+            
+            // --- Customer Search & Tag Factory ---
+            function setupCustomerSearch(inputId, resultsId, onSelect) {
+                const searchInput = document.getElementById(inputId);
+                const resultsContainer = document.getElementById(resultsId);
+                if (!searchInput || !resultsContainer) return;
+
+                const handler = () => {
+                    const searchTerm = searchInput.value.toLowerCase();
+                    resultsContainer.innerHTML = '';
+                    if (searchTerm) {
+                        const filtered = mockCustomers.filter(c => c.tenKH.toLowerCase().includes(searchTerm) || c.maKH.toLowerCase().includes(searchTerm));
+                        if (filtered.length > 0) {
+                            filtered.forEach(item => {
+                                const div = document.createElement('div');
+                                div.className = 'search-result-item';
+                                div.textContent = `${item.tenKH} (${item.maKH})`;
+                                div.addEventListener('click', () => {
+                                    onSelect(item);
+                                    searchInput.value = '';
+                                    resultsContainer.style.display = 'none';
+                                });
+                                resultsContainer.appendChild(div);
+                            });
+                            resultsContainer.style.display = 'block';
+                        } else {
+                            resultsContainer.style.display = 'none';
+                        }
+                    } else {
+                        resultsContainer.style.display = 'none';
+                    }
+                };
+                searchInput.addEventListener('input', handler);
+                searchInput.addEventListener('focus', handler);
+
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.searchable-dropdown')) {
+                        resultsContainer.style.display = 'none';
+                    }
+                });
+            }
+
+            function renderCustomerTags(customerArray, listId) {
+                const listEl = document.getElementById(listId);
+                listEl.innerHTML = '';
+                customerArray.forEach((p) => {
+                    const tag = document.createElement('div');
+                    tag.className = 'customer-tag';
+                    const roleText = p.role ? ` (${p.role})` : '';
+                    tag.innerHTML = `<span>${p.tenKH}${roleText}</span><button type="button" class="remove-tag-btn" data-id="${p.id}">&times;</button>`;
+                    tag.querySelector('.remove-tag-btn').addEventListener('click', function() {
+                        const customerId = parseInt(this.dataset.id, 10);
+                        if (listId.includes('book')) {
+                           openBookCustomers = openBookCustomers.filter(c => c.id !== customerId);
+                           renderCustomerTags(openBookCustomers, listId);
+                        } else {
+                           transactionPerformers = transactionPerformers.filter(c => c.id !== customerId);
+                           renderCustomerTags(transactionPerformers, listId);
+                        }
+                    });
+                    listEl.appendChild(tag);
+                });
+            }
+            
+            // --- OPEN BOOK MODAL LOGIC ---
+            function initOpenBookModal() {
+                const modalId = 'open-book-modal';
+                const form = document.getElementById('open-book-form');
+                form.reset();
+                openBookCustomers = [];
+                renderCustomerTags(openBookCustomers, 'book-selected-customers-list');
+                
+                const productSelect = document.getElementById('productType');
+                productSelect.innerHTML = '<option value="">-- Chọn loại sổ --</option>';
+                for (const key in mockProducts) {
+                    productSelect.innerHTML += `<option value="${key}">${mockProducts[key].name}</option>`;
+                }
+
+                setupStepper(modalId, (currentStep) => {
+                    if (currentStep === 3) {
+                        const termSelect = document.getElementById('productTerm');
+                        if (termSelect.value) {
+                             termSelect.dispatchEvent(new Event('change'));
+                        }
+                    }
+                    if (currentStep === 4) {
+                        populateBookConfirmation();
+                    }
+                    return true;
+                });
+            }
+            
+            document.getElementById('add-customer-from-book-btn').addEventListener('click', () => {
+                openModal('customer-modal', { isSubModal: true });
+            });
+
+            setupCustomerSearch('book-customerSearch', 'book-customerSearchResults', (customer) => {
+                if (!openBookCustomers.find(c => c.id === customer.id)) {
+                    openBookCustomers.push({ ...customer });
+                    renderCustomerTags(openBookCustomers, 'book-selected-customers-list');
+                }
+            });
+            
+            document.getElementById('productType').addEventListener('change', function() {
+                const productKey = this.value;
+                const product = mockProducts[productKey];
+                const paymentSelect = document.getElementById('productInterestPayment');
+                const termSelect = document.getElementById('productTerm');
+
+                paymentSelect.innerHTML = '<option value="">--</option>';
+                termSelect.innerHTML = '<option value="">--</option>';
+                paymentSelect.disabled = true;
+                termSelect.disabled = true;
+                document.getElementById('productCurrency').value = '';
+
+                if (product) {
+                    document.getElementById('productCurrency').value = product.currency;
+                    product.paymentMethods.forEach(method => {
+                        paymentSelect.innerHTML += `<option value="${method}">${method}</option>`;
+                    });
+                    if (product.paymentMethods.length === 1) {
+                        paymentSelect.selectedIndex = 1;
+                    }
+                    paymentSelect.disabled = false;
+                    
+                    for (const term in product.terms) {
+                        termSelect.innerHTML += `<option value="${term}">${term === '0' ? 'Không kỳ hạn' : term + ' tháng'}</option>`;
+                    }
+                    termSelect.disabled = false;
+                }
+            });
+
+             document.getElementById('productTerm').addEventListener('change', function() {
+                const term = this.value;
+                const productKey = document.getElementById('productType').value;
+                const product = mockProducts[productKey];
+
+                if (product && term && product.terms[term]) {
+                    const rateInfo = product.terms[term];
+                    document.getElementById('rateTier').value = "Mức mặc định";
+                    document.getElementById('rateFirstMonth').value = rateInfo.firstMonth + '%';
+                    document.getElementById('rateAfterMonth').value = rateInfo.after + '%';
+                    document.getElementById('rateDate').value = rateInfo.date;
+                } else {
+                     document.getElementById('rateTier').value = '';
+                    document.getElementById('rateFirstMonth').value = '';
+                    document.getElementById('rateAfterMonth').value = '';
+                    document.getElementById('rateDate').value = '';
+                }
+             });
+
+            function populateBookConfirmation() {
+                const form = document.getElementById('open-book-form');
+                const listEl = document.getElementById('summary-customer-list');
+                listEl.innerHTML = openBookCustomers.map(c => `<li>${c.tenKH}</li>`).join('');
+
+                const amount = parseFloat(form.querySelector('#depositAmount').value);
+                document.getElementById('summary-amount').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
+                
+                const productSelect = form.querySelector('#productType');
+                document.getElementById('summary-product-name').textContent = productSelect.options[productSelect.selectedIndex].text;
+                
+                const termSelect = form.querySelector('#productTerm');
+                document.getElementById('summary-term').textContent = termSelect.options[termSelect.selectedIndex].text;
+                
+                const rate = form.querySelector('#rateFirstMonth').value;
+                document.getElementById('summary-rate').textContent = rate;
+
+                const openDate = new Date();
+                document.getElementById('summary-open-date').textContent = openDate.toLocaleDateString('vi-VN');
+
+                const termMonths = parseInt(termSelect.value, 10);
+                if (!isNaN(termMonths) && termMonths > 0) {
+                    const maturityDate = new Date(openDate.setMonth(openDate.getMonth() + termMonths));
+                    document.getElementById('summary-maturity-date').textContent = maturityDate.toLocaleDateString('vi-VN');
+                } else {
+                    document.getElementById('summary-maturity-date').textContent = "Không xác định";
+                }
+
+                const paymentSelect = form.querySelector('#productInterestPayment');
+                document.getElementById('summary-payment-method').textContent = paymentSelect.value;
+            }
+
+
+            // --- TRANSACTION MODAL LOGIC ---
+            function initTransactionModal() {
+                 setupStepper('add-transaction-modal');
+                 setupCustomerSearch('transaction-customer-search', 'trans-customer-search-results', (customer) => {
+                    const role = document.getElementById('transaction-customer-role').value;
+                    if (!transactionPerformers.find(p => p.id === customer.id)) {
+                        transactionPerformers.push({ ...customer, role });
+                        renderCustomerTags(transactionPerformers, 'transaction-customers-list');
+                    }
+                });
+            }
+            
+            document.getElementById('transaction-customer-role').addEventListener('change', function() {
+                const isOwner = this.value === 'Chủ sở hữu';
+                document.getElementById('owner-book-select-container').style.display = isOwner ? 'block' : 'none';
+                document.getElementById('authorized-book-input-container').style.display = isOwner ? 'none' : 'block';
+            });
+            
+             document.getElementById('add-performer-btn').addEventListener('click', () => {
+                const searchInput = document.getElementById('transaction-customer-search');
+                const customerName = searchInput.value;
+                const customer = mockCustomers.find(c => c.tenKH.toLowerCase() === customerName.toLowerCase());
+                if(customer) {
+                    const role = document.getElementById('transaction-customer-role').value;
+                    if (!transactionPerformers.find(p => p.id === customer.id)) {
+                        transactionPerformers.push({ ...customer, role });
+                        renderCustomerTags(transactionPerformers, 'transaction-customers-list');
+                    }
+                    searchInput.value = '';
+                } else {
+                    showToast('Không tìm thấy khách hàng!', 'error');
+                }
+            });
+
+            // --- REPORT MODAL LOGIC ---
+            document.querySelectorAll('.report-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const reportType = this.dataset.report;
+                    const modalTitle = document.getElementById('report-modal-title');
+                    const modalBody = document.getElementById('report-modal-body');
+                    modalTitle.textContent = this.querySelector('.report-title').textContent;
+                    modalBody.innerHTML = '';
+                    let reportContent = '';
+                    switch (reportType) {
+                        case 'customer':
+                            reportContent = `<div class="report-filters"><div class="form-group"><label>Từ ngày</label><input type="date"></div><div class="form-group"><label>Đến ngày</label><input type="date"></div><button class="btn btn-primary"><i class="fas fa-filter"></i> Lọc</button><button class="btn btn-success" style="margin-left: auto;"><i class="fas fa-file-excel"></i> Xuất Excel</button></div><div class="table-container"><table class="data-table"><thead><tr><th>Mã KH</th><th>Họ Tên</th><th>Tổng tiền gửi</th><th>Trạng thái</th></tr></thead><tbody><tr><td>KH001</td><td>Nguyễn Văn An</td><td>150,000,000 VNĐ</td><td>Đã gửi</td></tr><tr><td>KH002</td><td>Trần Thị Bích</td><td>50,000,000 VNĐ</td><td>Đã gửi</td></tr><tr><td>KH003</td><td>Lê Văn Cường</td><td>0 VNĐ</td><td>Chưa gửi</td></tr></tbody></table></div>`;
+                            break;
+                        case 'transaction':
+                             reportContent = `<div class="report-filters"><div class="form-group"><label>Từ ngày</label><input type="date"></div><div class="form-group"><label>Đến ngày</label><input type="date"></div><div class="form-group"><label>Loại giao dịch</label><select><option>Tất cả</option><option>Gửi tiền</option><option>Rút lãi</option></select></div><button class="btn btn-primary"><i class="fas fa-filter"></i> Lọc</button></div><div class="table-container"><table class="data-table"><thead><tr><th>Mã GD</th><th>Khách hàng</th><th>Loại GD</th><th>Thời gian</th><th>Số tiền</th></tr></thead><tbody><tr><td>GD240601-001</td><td>Nguyễn Văn An</td><td>Gửi tiền</td><td>01/06/2024</td><td style="color: var(--success-color);">+100,000,000 VNĐ</td></tr><tr><td>GD240602-002</td><td>Trần Thị Bích</td><td>Rút lãi</td><td>02/06/2024</td><td style="color: var(--danger-color);">-1,500,000 VNĐ</td></tr></tbody></table></div>`;
+                            break;
+                        case 'savings-book':
+                            reportContent = `<div class="report-filters"><div class="form-group"><label>Từ ngày</label><input type="date"></div><div class="form-group"><label>Đến ngày</label><input type="date"></div><div class="form-group"><label>Loại sổ</label><select><option>Tất cả</option><option>Tiết kiệm thường 12 tháng</option><option>Tiết kiệm phát lộc</option></select></div><button class="btn btn-primary"><i class="fas fa-filter"></i> Lọc</button></div><div class="table-container"><table class="data-table"><thead><tr><th>Mã Sổ</th><th>Tên Sổ</th><th>Trạng thái</th><th>Ngày mở</th><th>Ngày đáo hạn</th><th>Số dư</th></tr></thead><tbody><tr><td>STK00123</td><td>Tiết kiệm thường 12 tháng</td><td>Sổ mở mới</td><td>01/06/2024</td><td>01/06/2025</td><td>100,000,000 VNĐ</td></tr><tr><td>STK00120</td><td>Tiết kiệm phát lộc</td><td>Sổ đáo hạn</td><td>15/05/2023</td><td>15/05/2024</td><td>200,000,000 VNĐ</td></tr></tbody></table><div style="text-align: right; font-weight: bold; margin-top: 1rem;">Tổng số dư: 300,000,000 VNĐ</div></div>`;
+                            break;
+                        case 'debt':
+                             reportContent = `<div class="report-filters"><div class="form-group"><label>Thống kê đến ngày</label><input type="date"></div><button class="btn btn-primary"><i class="fas fa-filter"></i> Xem</button></div><div class="table-container"><table class="data-table"><thead><tr><th>Mã Sổ</th><th>Khách hàng</th><th>Tiền lãi phải trả</th><th>Ngày dự chi</th></tr></thead><tbody><tr><td>STK00123</td><td>Nguyễn Văn An</td><td>5,500,000 VNĐ</td><td>01/07/2024</td></tr><tr><td>STK00124</td><td>Trần Thị Bích</td><td>2,250,000 VNĐ</td><td>15/07/2024</td></tr></tbody></table></div>`;
+                            break;
+                    }
+                    modalBody.innerHTML = reportContent;
+                    openModal('report-modal');
+                });
+            });
+
+            // --- Sidebar Collapse & Mobile Menu ---
+            sidebarToggle.addEventListener('click', () => document.body.classList.toggle('sidebar-collapsed'));
+            function closeMobileMenu() {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+                document.body.classList.remove('mobile-menu-open');
+            }
+            mobileMenuToggle.addEventListener('click', () => {
+                sidebar.classList.add('open');
+                sidebarOverlay.classList.add('active');
+                document.body.classList.add('mobile-menu-open');
+            });
+            sidebarOverlay.addEventListener('click', closeMobileMenu);
+            
+            // --- User Menu Dropdown ---
+            userMenuButton.addEventListener('click', (e) => {
+                 e.stopPropagation();
+                 userDropdown.classList.toggle('show');
+            });
+            document.addEventListener('click', (e) => {
+                 if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
+                    userDropdown.classList.remove('show');
+                 }
+            });
+
+            // --- Chart.js ---
+            if(document.getElementById('transactionsChart')){
+                const ctx = document.getElementById('transactionsChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+                        datasets: [{ label: 'Tiền gửi (triệu VNĐ)', data: [50, 80, 60, 120, 90, 70, 150], backgroundColor: 'rgba(34, 197, 94, 0.6)'}, { label: 'Tiền rút (triệu VNĐ)', data: [20, 30, 25, 40, 35, 50, 60], backgroundColor: 'rgba(239, 68, 68, 0.6)'}]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // --- Main Header Search Logic ---
+            const mainSearchInput = document.querySelector('.header .search-box input');
+            mainSearchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                const activePage = document.querySelector('.page.active');
+
+                if (!activePage || activePage.id === 'dashboard-page' || activePage.id === 'reports-page') {
+                    return;
+                }
+
+                const tableRows = activePage.querySelectorAll('.data-table tbody tr');
+                if (tableRows.length === 0) return;
+
+                tableRows.forEach(row => {
+                    let isMatch = false;
+                    const cellContents = Array.from(row.cells).map(cell => cell.textContent.toLowerCase());
+                    if (cellContents.some(content => content.includes(searchTerm))) {
+                        isMatch = true;
+                    }
+                    row.style.display = isMatch ? '' : 'none';
+                });
+            });
+
+            const aiTabsContainer = document.querySelector('.ai-tabs');
+            if (aiTabsContainer) {
+                const aiTabLinks = aiTabsContainer.querySelectorAll('.ai-tab-link');
+                const aiTabContents = document.querySelectorAll('.ai-tab-content');
+
+                aiTabsContainer.addEventListener('click', function(e) {
+                    const clickedTab = e.target.closest('.ai-tab-link');
+                    if (!clickedTab) return;
+
+                    aiTabLinks.forEach(link => link.classList.remove('active'));
+                    clickedTab.classList.add('active');
+
+                    const tabId = clickedTab.dataset.tab;
+                    aiTabContents.forEach(content => {
+                        content.classList.toggle('active', content.id === tabId);
+                    });
+                });
+            }
+
+            // -- Logic for Anomaly Detection --
+            const runAiAnalysisBtn = document.getElementById('run-ai-analysis-btn');
+            const aiResultsContainer = document.getElementById('ai-results-container');
+            const aiStartDateInput = document.getElementById('ai-startDate');
+            const aiEndDateInput = document.getElementById('ai-endDate');
+
+            // Đặt ngày mặc định cho bộ lọc
+            const today = new Date();
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(today.getMonth() - 1);
+            if(aiStartDateInput) aiStartDateInput.value = oneMonthAgo.toISOString().split('T')[0];
+            if(aiEndDateInput) aiEndDateInput.value = today.toISOString().split('T')[0];
+
+            if(runAiAnalysisBtn) {
+                runAiAnalysisBtn.addEventListener('click', function() {
+                    runAiAnalysisBtn.disabled = true;
+                    runAiAnalysisBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang phân tích...';
+                    aiResultsContainer.innerHTML = `<div class="initial-message"><p><i class="fas fa-spinner fa-spin"></i> Đang phân tích dữ liệu...</p></div>`;
+
+                    setTimeout(() => {
+                        const mockAnomalies = [
+                            { id: 'GD240715-001', kh: 'KH002', tenKH: 'Trần Thị Bích', time: '2025-06-12 08:30:15', type: 'Rút', amount: '95,000,000', reason: 'Rút >95% số gốc' },
+                            { id: 'GD240714-015', kh: 'KH001', tenKH: 'Nguyễn Văn An', time: '2025-06-11 15:45:02', type: 'Rút', amount: '500,000,000', reason: 'Số tiền lớn bất thường' },
+                            { id: 'GD240713-007', kh: 'KH003', tenKH: 'Lê Văn Cường', time: '2025-06-10 22:10:00', type: 'Rút', amount: '80,000,000', reason: 'Giao dịch ngoài giờ HC' }
+                        ];
+
+                        let tableHTML = `<div class="table-container"><table class="data-table"><thead><tr><th>Mã GD</th><th>Mã KH</th><th>Tên KH</th><th>Thời Gian</th><th>Loại GD</th><th>Số Tiền (VND)</th><th>Lý Do Nghi Ngờ</th><th>Hành Động</th></tr></thead><tbody>`;
+                        mockAnomalies.forEach(trans => {
+                            tableHTML += `<tr>
+                                <td>${trans.id}</td>
+                                <td>${trans.kh}</td>
+                                <td>${trans.tenKH}</td>
+                                <td>${trans.time}</td>
+                                <td>${trans.type}</td>
+                                <td style="color: ${trans.type === 'Gửi' ? 'var(--success-color)' : 'var(--danger-color)'}; font-weight: 500;">${trans.type === 'Gửi' ? '+' : '-'}${trans.amount}</td>
+                                <td><span class="reason-tag">${trans.reason}</span></td>
+                                <td class="action-links"><button title="Đánh dấu đã xem" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;"><i class="fas fa-check"></i></button></td>
+                            </tr>`;
+                        });
+                        tableHTML += `</tbody></table></div>`;
+                        aiResultsContainer.innerHTML = tableHTML;
+                        
+                        runAiAnalysisBtn.disabled = false;
+                        runAiAnalysisBtn.innerHTML = '<i class="fas fa-play-circle"></i> Chạy Phân tích';
+                        showToast(`Phân tích hoàn tất! Đã phát hiện ${mockAnomalies.length} giao dịch bất thường.`, 'success');
+
+                    }, 2000);
+                });
+            }
+
+            // -- Logic for Customer Segmentation --
+            const runSegmentationBtn = document.getElementById('run-segmentation-btn');
+            const segmentationResultsContainer = document.getElementById('segmentation-results-container');
+            let segmentationChart = null; // To hold the chart instance
+
+            if (runSegmentationBtn) {
+                runSegmentationBtn.addEventListener('click', function() {
+                    runSegmentationBtn.disabled = true;
+                    runSegmentationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang phân nhóm...';
+                    segmentationResultsContainer.innerHTML = `<div class="initial-message"><p><i class="fas fa-spinner fa-spin"></i> Đang phân tích dữ liệu khách hàng...</p></div>`;
+
+                    setTimeout(() => {
+                        displaySegmentationResults();
+                        runSegmentationBtn.disabled = false;
+                        runSegmentationBtn.innerHTML = '<i class="fas fa-cogs"></i> Chạy Lại Phân Nhóm';
+                        showToast(`Phân nhóm hoàn tất! Đã xác định 3 nhóm khách hàng.`, 'success');
+                    }, 2500);
+                });
+            }
+
+            function displaySegmentationResults() {
+                const mockSegments = [
+                    { kh: 'KH001', ten: 'Nguyễn Văn An', deposit: 580000000, transactions: 45, tenure: 5, age: 39, group: 'VIP' },
+                    { kh: 'KH003', ten: 'Lê Văn Cường', deposit: 120000000, transactions: 15, tenure: 4, age: 36, group: 'Trung bình' },
+                    { kh: 'KH002', ten: 'Trần Thị Bích', deposit: 750000000, transactions: 62, tenure: 3, age: 34, group: 'VIP' },
+                    { kh: 'KH007', ten: 'Hoàng Thị E', deposit: 15000000, transactions: 3, tenure: 1, age: 25, group: 'Không hoạt động' },
+                    { kh: 'KH005', ten: 'Phạm Thị D', deposit: 95000000, transactions: 22, tenure: 2, age: 45, group: 'Trung bình' },
+                    { kh: 'KH008', ten: 'Đặng Văn F', deposit: 1100000000, transactions: 89, tenure: 6, age: 52, group: 'VIP' },
+                    { kh: 'KH011', ten: 'Vũ Minh G', deposit: 5000000, transactions: 1, tenure: 0.5, age: 22, group: 'Không hoạt động' },
+                ];
+
+                let tableHTML = `<table class="data-table">
+                    <thead><tr><th>Mã KH</th><th>Họ Tên</th><th>Tổng Tiền Gửi (VND)</th><th>Số GD</th><th>Thâm Niên (năm)</th><th>Tuổi</th><th>Nhóm</th></tr></thead>
+                    <tbody>`;
+
+                const groupBadges = {
+                    'VIP': '<span class="segment-badge segment-vip">VIP</span>',
+                    'Trung bình': '<span class="segment-badge segment-average">Trung bình</span>',
+                    'Không hoạt động': '<span class="segment-badge segment-inactive">Không hoạt động</span>'
+                };
+
+                mockSegments.forEach(cust => {
+                    tableHTML += `<tr>
+                        <td>${cust.kh}</td>
+                        <td>${cust.ten}</td>
+                        <td>${new Intl.NumberFormat('vi-VN').format(cust.deposit)}</td>
+                        <td>${cust.transactions}</td>
+                        <td>${cust.tenure}</td>
+                        <td>${cust.age}</td>
+                        <td>${groupBadges[cust.group]}</td>
+                    </tr>`;
+                });
+                tableHTML += `</tbody></table>`;
+                
+                const resultsHTML = `
+                    <div class="card">
+                        <div class="card-header"><h2 class="card-title">Kết quả Phân nhóm</h2></div>
+                        <div class="segmentation-results-grid">
+                            <div id="segmentation-chart-container">
+                                <canvas id="customer-segmentation-chart"></canvas>
+                            </div>
+                            <div class="table-container">
+                                ${tableHTML}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                segmentationResultsContainer.innerHTML = resultsHTML;
+
+                if(segmentationChart) {
+                    segmentationChart.destroy();
+                }
+
+                const ctx = document.getElementById('customer-segmentation-chart').getContext('2d');
+                segmentationChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['VIP', 'Trung bình', 'Không hoạt động'],
+                        datasets: [{
+                            label: 'Phân bố Khách hàng',
+                            data: [
+                                mockSegments.filter(c => c.group === 'VIP').length,
+                                mockSegments.filter(c => c.group === 'Trung bình').length,
+                                mockSegments.filter(c => c.group === 'Không hoạt động').length
+                            ],
+                            backgroundColor: ['#a855f7', '#3b82f6', '#64748b'],
+                            borderColor: 'var(--bg-primary)',
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+/* Reset và font chung */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #4b6cb7, #182848);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  color: #333;
+}
+
+/* Container chính */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.login-card {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Tiêu đề và phụ đề */
+.login-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.app-title {
+  font-size: 28px;
+  color: #1877f2;
+  font-weight: 600;
+}
+
+.app-subtitle {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Form */
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-input {
+  padding: 12px 14px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  transition: border 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #1877f2;
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.2);
+}
+
+/* Nút */
+.login-btn {
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  background-color: #1877f2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.login-btn:hover {
+  background-color: #166fe5;
+}
+
+/* Liên kết quên mật khẩu */
+.login-options {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.login-options a {
+  color: #1877f2;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.login-options a:hover {
+  text-decoration: underline;
+}
+
+/* Footer */
+.login-footer {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 13px;
+  color: #888;
+}
+
+/* Thông báo */
+.error-msg,
+.success-msg {
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 16px;
+  display: none;
+}
+
+.error-msg {
+  background-color: #fdecea;
+  color: #c0392b;
+  border-left: 4px solid #e74c3c;
+}
+
+.success-msg {
+  background-color: #e8f8f5;
+  color: #27ae60;
+  border-left: 4px solid #2ecc71;
+}
